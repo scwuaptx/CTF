@@ -250,7 +250,7 @@ def elfsym():
 
 def callplt(data):
     resplt = dict(zip(plt.values(),plt.keys()))
-    result =  re.search("blx.*0x.*",data)
+    result =  re.search("bl.*0x.*",data)
     if result :
         addr = result.group().split("0x")[1]
         addr = "0x" + addr
