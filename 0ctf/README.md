@@ -1,10 +1,3 @@
----
-layout: post
-title: '0ctf 2015 Write-up'
-date: 2015-04-02 16:28
-comments: true
-categories: 
----
 freenote[400]
 -
 
