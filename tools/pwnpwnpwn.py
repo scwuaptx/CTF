@@ -3,12 +3,17 @@ import socket
 import telnetlib
 
 #pack
-def pack(data,fmt="<Q"):
+def pack(data,fmt="<I"):
     return struct.pack(fmt,data)
 
-def unpack(data,fmt="<Q"):
+def unpack(data,fmt="<I"):
     return struct.unpack(fmt,data)[0]
 
+def pack64(data,fmt="<Q"):
+    return struct.pack(fmt,data)
+
+def unpack64(data,fmt="<Q"):
+    return struct.unpack(fmt,data)[0]
 
 #Connection
 def make_conn(host,port):
