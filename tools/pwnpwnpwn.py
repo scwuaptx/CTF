@@ -37,10 +37,15 @@ def inter(sock):
     t.interact()
 
 #fmt
-def fmtchar(prev_word,word,index):
+def fmtchar(prev_word,word,index,byte = 1):
     if word - prev_word > 0 :
         result = word - prev_word 
     else :
         result = 256 - prev_word + word
-    fmt = "%" + str(result) + "c" + "%" + str(index) + "$hhn"
+    if byte == 2 :
+        fmt = "%" + str(result) + "c" + "%" + str(index) + "$hn"
+    elif byte == 4 :
+        fmt = "%" + str(result) + "c" + "%" + str(index) + "$n"
+    else :
+        fmt = "%" + str(result) + "c" + "%" + str(index) + "$hhn"
     return fmt
