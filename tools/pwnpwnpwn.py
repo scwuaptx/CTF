@@ -38,14 +38,19 @@ def inter(sock):
 
 #fmt
 def fmtchar(prev_word,word,index,byte = 1):
+    fmt = ""
     if word - prev_word > 0 :
         result = word - prev_word 
+        fmt += "%" + str(result) + "c"
+    elif word == prev_word :
+        result = 0
     else :
         result = 256 - prev_word + word
+        fmt += "%" + str(result) + "c"
     if byte == 2 :
-        fmt = "%" + str(result) + "c" + "%" + str(index) + "$hn"
+        fmt += "%" + str(index) + "$hn"
     elif byte == 4 :
-        fmt = "%" + str(result) + "c" + "%" + str(index) + "$n"
+        fmt += "%" + str(index) + "$n"
     else :
-        fmt = "%" + str(result) + "c" + "%" + str(index) + "$hhn"
+        fmt += "%" + str(index) + "$hhn"
     return fmt
