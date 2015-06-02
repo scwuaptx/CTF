@@ -65,7 +65,13 @@ def sc(arch="x86"):
     else :
         return None
 
+def ror(x,n,bit = 32):
+    result = x >> n
+    result = result | (( x << (bit -n)) & (2**bit-1))
+    return result
 
+def rol(x,n,bit = 32):
+    return ror(x,bit-n,bit)
 
 #srop x86_64
 #sigret
