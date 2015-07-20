@@ -11,3 +11,4 @@
   + print process mapping
 + findstr
   + find a string in memory (except heap and stack)
+  + ex : findstr /bin/sh
