@@ -4,8 +4,13 @@ import re
 def showstack():
     pat = "\<.*\>"
     output = ""
-    output += gdb.execute('x/x $context_t ',to_string=True)[:-1]
-    value = output.split(":")[1][1:]
+    output += "\033[34m"
+    data = gdb.execute('x/x $context_t ',to_string=True)[:-1]
+    output += data.split(":")[0]
+    output += ":"
+    output += "\033[37m"
+    output += data.split(":")[1]
+    value = data.split(":")[1][1:]
     try :
         devalue = gdb.execute('x/wx ' + str(value),to_string=True)
         output += " --> "
