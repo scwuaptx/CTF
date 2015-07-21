@@ -1,0 +1,11 @@
+source ~/peda/peda.py
+source ~/pwngdbx86.py
+define libc
+	python putlibc()
+end
+define ld
+	python putld()
+end
+define off
+	python putoff("$arg0")
+end

@@ -97,11 +97,23 @@ def putld():
 
 def off(sym):
     libc = libcbase()
-    data = gdb.execute("x/x " + sym ,to_string=True)
-    if "No symbol" in data:
+    try :
+        symaddr = int(sym,16)
+        return symaddr-libc
+    except :
+        data = gdb.execute("x/x " + sym ,to_string=True)
+        if "No symbol" in data:
+            return 0
+        else :
+            data = re.search("0x.*[0-9a-f] ",data)
+            data = data.group()
+            symaddr = int(data[:-1] ,16)
+            return symaddr-libc
+
+def putoff(sym) :
+    symaddr = off(sym)
+    if symaddr == 0 : 
         print("Not found the symbol")
     else :
-        data = re.search("0x.*[0-9a-f] ",data)
-        data = data.group()
-        symaddr = int(data[:-1] ,16)
-        print(hex(symaddr-libc)) 
+        print("\033[34m" + sym  + ":" + "\033[37m" +hex(symaddr))
+
