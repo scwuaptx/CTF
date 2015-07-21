@@ -37,30 +37,24 @@ def showreg(reg):
         output += "\n"
     print(output,end="")
 
+def procmap():
+    data = gdb.execute('info proc exe',to_string = True)
+    pid = re.search('process.*',data)
+    if pid :
+        pid = pid.group()
+        pid = pid.split()[1]
+        maps = open("/proc/" + pid + "/maps","r")
+        infomap = maps.read()
+        maps.close()
+        return infomap
+    else :
+        return "error"
+
 def vmmap():
-    data = gdb.execute('info proc exe',to_string = True)
-    pid = re.search('process.*',data)
-    if pid :
-        pid = pid.group()
-        pid = pid.split()[1]
-        maps = open("/proc/" + pid + "/maps","r")
-        infomap = maps.read()
-        print(infomap,end="")
-        maps.close()
-    else :
-        print('error')
-     
+    print(procmap(),end="")
+
 def findstr(pat):
-    data = gdb.execute('info proc exe',to_string = True)
-    pid = re.search('process.*',data)
-    if pid :
-        pid = pid.group()
-        pid = pid.split()[1]
-        maps = open("/proc/" + pid + "/maps","r")
-        infomap = maps.read()
-        maps.close()
-    else :
-        print('error')
+    infomap = procmap()
     mems = infomap.split('\n')
     for mem in mems[:-1] :
         start = int((mem.split()[0]).split("-")[0],16)
@@ -75,3 +69,37 @@ def findstr(pat):
                 content = (gdb.execute("x/s " + addr,to_string=True)).split()[1]
                 output = "\033[34m" + addr + "\033[37m"+ " --> " + content + "\033[32m" + " (" + name + ")"+"\033[37m" + '\n'
                 print(output,end="")
+
+def libcbase():
+    infomap = procmap()
+    data = re.search(".*libc.*\.so",infomap)
+    if data :
+        libcaddr = data.group().split("-")[0]
+        return int(libcaddr,16)
+    else :
+        return 0
+
+def ldbase():
+    infomap = procmap()
+    data = re.search(".*ld.*\.so",infomap)
+    if data :
+        ldaddr = data.group().split("-")[0]
+        return int(ldaddr,16)
+    else :
+        return 0
+
+def putlibc():
+    print("\033[34m" + "libc : " + "\033[37m" + hex(libcbase()))
+
+
+def putld():
+    print("\033[34m" + "ld : " + "\033[37m" + hex(ldbase()))
+
+def off(sym):
+    libc = libcbase()
+    data = gdb.execute("x/x " + sym ,to_string=True)
+    if "No symbol" in data:
+        print("Not found the symbol")
+    else :
+        symaddr = int(data[:10] ,16)
+        print(hex(symaddr-libc)) 

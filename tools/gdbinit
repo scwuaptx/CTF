@@ -145,9 +145,24 @@ set $COLOR_REGVAL_MODIFIED  = $RED
 set $COLOR_SEPARATOR = $BLUE
 set $COLOR_CPUFLAGS = $RED
 
+#libcbase
+define libc
+	python putlibc()
+end
+
+#ldbase
+define ld
+	python putld()
+end
+
 # vmmap
 define vmmap
 	python vmmap()
+end
+
+#offset
+define off
+	python off("$arg0")
 end
 
 #find 
