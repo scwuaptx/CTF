@@ -162,7 +162,7 @@ end
 
 #offset
 define off
-	python off("$arg0")
+	python putoff("$arg0")
 end
 
 #find 
