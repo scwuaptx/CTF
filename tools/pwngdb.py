@@ -101,5 +101,7 @@ def off(sym):
     if "No symbol" in data:
         print("Not found the symbol")
     else :
-        symaddr = int(data[:10] ,16)
+        data = re.search("0x.*[0-9a-f] ",data)
+        data = data.group()
+        symaddr = int(data[:-1] ,16)
         print(hex(symaddr-libc)) 
