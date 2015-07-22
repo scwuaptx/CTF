@@ -1,4 +1,5 @@
 import gdb
+import subprocess
 import re
 
 def showstack():
@@ -117,3 +118,14 @@ def putoff(sym) :
     else :
         print("\033[34m" + sym  + ":" + "\033[37m" +hex(symaddr))
 
+def got():
+    data = gdb.execute("info proc exe",to_string=True)
+    procname = re.search("exe.*",data).group().split("=")[1][2:-1]
+    got = subprocess.check_output("objdump -R " + procname,shell=True)[:-2]
+    print(got.decode('utf8'))
+
+def dyn():
+    data = gdb.execute("info proc exe",to_string=True)
+    procname = re.search("exe.*",data).group().split("=")[1][2:-1]
+    dyn = subprocess.check_output("readelf -d " + procname,shell=True)
+    print(dyn.decode('utf8'))
