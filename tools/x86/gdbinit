@@ -18,3 +18,10 @@ end
 define rdbg
 	target remote localhost:1234
 end
+define findcall
+	python putfindcall("$arg0")
+end
+
+define bcall
+	python bcall("$arg0")
+end
