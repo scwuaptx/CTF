@@ -15,6 +15,11 @@ def procmap():
     else :
         return "error"
 
+def getprocname():
+    data = gdb.execute("info proc exe",to_string=True)
+    procname = re.search("exe.*",data).group().split("=")[1][2:-1]
+    return procname
+
 def libcbase():
     infomap = procmap()
     data = re.search(".*libc.*\.so",infomap)
@@ -33,11 +38,28 @@ def ldbase():
     else :
         return 0
 
+def codebase():
+    infomap = procmap()
+    procname = getprocname()
+    pat = ".*" + procname
+    data = re.search(pat,infomap)
+    if data :
+        codeaddr = data.group().split("-")[0]
+        return int(codeaddr,16)
+    else :
+        return 0
+
+
 def putlibc():
     print("\033[34m" + "libc : " + "\033[37m" + hex(libcbase()))
 
 def putld():
     print("\033[34m" + "ld : " + "\033[37m" + hex(ldbase()))
+
+
+def putcodebase():
+    print("\033[34m" + "ld : " + "\033[37m" + hex(codebase()))
+
 
 def off(sym):
     libc = libcbase()
@@ -61,11 +83,6 @@ def putoff(sym) :
     else :
         print("\033[34m" + sym  + ":" + "\033[37m" +hex(symaddr))
 
-def getprocname():
-    data = gdb.execute("info proc exe",to_string=True)
-    procname = re.search("exe.*",data).group().split("=")[1][2:-1]
-    return procname
-
 def got():
     procname = getprocname()
     got = subprocess.check_output("objdump -R " + procname,shell=True)[:-2]
@@ -86,6 +103,15 @@ def searchcall(sym):
     except :
         return "symbol not found"
 
+def ispie():
+    procname = getprocname()
+    result = subprocess.check_output("readelf -h " + procname,shell=True)
+    if re.search("DYN",result):
+        return True
+    else:
+        return False
+
+
 def putfindcall(sym):
     output = searchcall(sym)
     print(output.decode('utf8'))
@@ -95,7 +121,14 @@ def bcall(sym):
     if "not found" in call :
         print("symbol not found")
     else :
-        for calladdr in  call.split('\n')[:-1]:
-            addr = int(calladdr.split(':')[0],16)
-            cmd = "b*" + hex(addr)
-            print(gdb.execute(cmd,to_string=True))
+        if ispie():
+            codeaddr = codebase()
+            for calladdr in call.split('\n')[:-1]: 
+                addr = int(calladdr.split(':')[0],16) + codeaddr
+                cmd = "b*" + hex(addr)
+                print(gdb.execute(cmd,to_string=True))
+        else:
+            for calladdr in  call.split('\n')[:-1]:
+                addr = int(calladdr.split(':')[0],16)
+                cmd = "b*" + hex(addr)
+                print(gdb.execute(cmd,to_string=True))
