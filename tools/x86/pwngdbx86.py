@@ -61,9 +61,13 @@ def putoff(sym) :
     else :
         print("\033[34m" + sym  + ":" + "\033[37m" +hex(symaddr))
 
-def got():
+def getprocname():
     data = gdb.execute("info proc exe",to_string=True)
     procname = re.search("exe.*",data).group().split("=")[1][2:-1]
+    return procname
+
+def got():
+    procname = getprocname()
     got = subprocess.check_output("objdump -R " + procname,shell=True)[:-2]
     print(got.decode('utf8'))
 
@@ -72,3 +76,26 @@ def dyn():
     procname = re.search("exe.*",data).group().split("=")[1][2:-1]
     dyn = subprocess.check_output("readelf -d " + procname,shell=True)
     print(dyn.decode('utf8'))
+
+def searchcall(sym):
+    procname = getprocname()
+    try :
+        call = subprocess.check_output("objdump -d -M intel " + procname 
+                + "| grep \"call.*" + sym + "@plt>\""  ,shell=True)
+        return call
+    except :
+        return "symbol not found"
+
+def putfindcall(sym):
+    output = searchcall(sym)
+    print(output.decode('utf8'))
+
+def bcall(sym):
+    call = searchcall(sym)
+    if "not found" in call :
+        print("symbol not found")
+    else :
+        for calladdr in  call.split('\n')[:-1]:
+            addr = int(calladdr.split(':')[0],16)
+            cmd = "b*" + hex(addr)
+            print(gdb.execute(cmd,to_string=True))
