@@ -111,6 +111,15 @@ def ispie():
     else:
         return False
 
+def abcd(bit):
+    s = ""
+    for i in range(0x7a-0x41):
+        s += chr(0x41+i)*(int(bit)/8)
+    print(s)
+
+def length(bit,pat):
+    off = (ord(pat) - 0x41)*(int(bit)/8)
+    print(off)
 
 def putfindcall(sym):
     output = searchcall(sym)

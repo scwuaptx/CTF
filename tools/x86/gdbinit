@@ -28,3 +28,9 @@ end
 define bcall
 	python bcall("$arg0")
 end
+define abcd
+	python abcd("$arg0")
+end
+define length
+	python length("$arg0","$arg1")
+end
