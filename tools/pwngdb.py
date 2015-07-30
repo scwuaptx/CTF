@@ -182,10 +182,10 @@ def getplt():
     result = subprocess.check_output("objdump -d -j .plt " + procname +
             "| grep -A 31337 .plt\>",shell=True).decode('utf8')
     pltentry = result.split('\n')[1:]
-    temp.append(pltentry[:4])
+    temp.append(pltentry[0] + '\n'+ pltentry[1] + '\n' + pltentry[2] + '\n' + pltentry[3])
     pltentry = pltentry[5:]
     for i in range(int(len(pltentry)/3)):
-        temp.append(pltentry[i*3] + '\n' + pltentry[i*3+1] + '\n' + pltentry[i*3+2] + '\n')
+        temp.append(pltentry[i*3] + '\n' + pltentry[i*3+1] + '\n' + pltentry[i*3+2] )
     plt = dict(zip(got_plt,temp))
     return plt
 
