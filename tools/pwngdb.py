@@ -2,6 +2,8 @@ import gdb
 import subprocess
 import re
 
+
+
 def showstack():
     pat = "\<.*\>"
     output = ""
@@ -160,4 +162,37 @@ def dyn():
     data = gdb.execute("info proc exe",to_string=True)
     procname = re.search("exe.*",data).group().split("=")[1][2:-1]
     dyn = subprocess.check_output("readelf -d " + procname,shell=True)
-    print(dyn.decode('utf8')) 
+    print(dyn.decode('utf8'))
+
+def getgotplt():
+    gotplt = []
+    procname = getprocname()
+    result = subprocess.check_output("objdump -R " + procname +
+            "|grep R_ARM_JUMP_SLOT",shell=True )
+    result = result.decode('utf8')
+    for element in result.split('\n')[:-1]:
+        gotplt.append(element.split()[2])
+    return gotplt
+
+def getplt():
+    plt = {}
+    temp = []
+    got_plt = ["plt0"]+getgotplt()
+    procname = getprocname()
+    result = subprocess.check_output("objdump -d -j .plt " + procname +
+            "| grep -A 31337 .plt\>",shell=True).decode('utf8')
+    pltentry = result.split('\n')[1:]
+    temp.append(pltentry[:4])
+    pltentry = pltentry[5:]
+    for i in range(int(len(pltentry)/3)):
+        temp.append(pltentry[i*3] + '\n' + pltentry[i*3+1] + '\n' + pltentry[i*3+2] + '\n')
+    plt = dict(zip(got_plt,temp))
+    return plt
+
+def findplt(sym):
+    plt = getplt()
+    if sym in plt :
+        symplt = plt[sym]
+    else :
+        symplt = "The symbol not found"
+    print(symplt)

@@ -155,6 +155,10 @@ define ld
 	python putld()
 end
 
+define plt
+	python findplt("$arg0")
+end
+
 #codebase
 define code
 	python putcodebase()
