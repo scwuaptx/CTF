@@ -155,6 +155,11 @@ define ld
 	python putld()
 end
 
+#codebase
+define code
+	python putcodebase()
+end
+
 define got
 	python got()
 end
@@ -170,6 +175,18 @@ end
 #offset
 define off
 	python putoff("$arg0")
+end
+
+define rdbg
+	target remote localhost:1234
+end
+
+define abcd
+	python abcd("$arg0")
+end
+
+define length
+	python length("$arg0","$arg1")
 end
 
 #find 

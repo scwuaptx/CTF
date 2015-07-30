@@ -38,6 +38,11 @@ def showreg(reg):
         output += "\n"
     print(output,end="")
 
+def getprocname():
+    data = gdb.execute("info proc exe",to_string=True)
+    procname = re.search("exe.*",data).group().split("=")[1][2:-1]
+    return procname
+
 def procmap():
     data = gdb.execute('info proc exe',to_string = True)
     pid = re.search('process.*',data)
@@ -89,12 +94,28 @@ def ldbase():
     else :
         return 0
 
+def codebase():
+    infomap = procmap()
+    procname = getprocname()
+    pat = ".*" + procname
+    data = re.search(pat,infomap)
+    if data :
+        codeaddr = data.group().split("-")[0]
+        return int(codeaddr,16)
+    else :
+        return 0
+
+
 def putlibc():
     print("\033[34m" + "libc : " + "\033[37m" + hex(libcbase()))
 
 
 def putld():
     print("\033[34m" + "ld : " + "\033[37m" + hex(ldbase()))
+
+
+def putcodebase():
+    print("\033[34m" + "ld : " + "\033[37m" + hex(codebase()))
 
 def off(sym):
     libc = libcbase()
@@ -118,6 +139,17 @@ def putoff(sym) :
     else :
         print("\033[34m" + sym  + ":" + "\033[37m" +hex(symaddr))
 
+
+def abcd(bit):
+    s = ""
+    for i in range(0x7a-0x41):
+        s += chr(0x41+i)*(int(int(bit)/8))
+    print(s)
+
+def length(bit,pat):
+    off = (ord(pat) - 0x41)*(int(int(bit)/8))
+    print(off)
+
 def got():
     data = gdb.execute("info proc exe",to_string=True)
     procname = re.search("exe.*",data).group().split("=")[1][2:-1]
@@ -128,4 +160,4 @@ def dyn():
     data = gdb.execute("info proc exe",to_string=True)
     procname = re.search("exe.*",data).group().split("=")[1][2:-1]
     dyn = subprocess.check_output("readelf -d " + procname,shell=True)
-    print(dyn.decode('utf8'))
+    print(dyn.decode('utf8')) 
