@@ -182,17 +182,39 @@ def getplt():
     result = subprocess.check_output("objdump -d -j .plt " + procname +
             "| grep -A 31337 .plt\>",shell=True).decode('utf8')
     pltentry = result.split('\n')[1:]
-    temp.append(pltentry[0] + '\n'+ pltentry[1] + '\n' + pltentry[2] + '\n' + pltentry[3])
+    temp.append(pltentry[0].split(":")[0].strip())
     pltentry = pltentry[5:]
     for i in range(int(len(pltentry)/3)):
-        temp.append(pltentry[i*3] + '\n' + pltentry[i*3+1] + '\n' + pltentry[i*3+2] )
+        temp.append(pltentry[i*3].split(":")[0].strip() )
     plt = dict(zip(got_plt,temp))
     return plt
 
-def findplt(sym):
+def putplt(sym):
     plt = getplt()
     if sym in plt :
         symplt = plt[sym]
+        if sym is "plt0":
+            result = gdb.execute("x/4i " + symplt,to_string=True)
+        else :
+            result = gdb.execute("x/3i" + symplt,to_string=True)
     else :
-        symplt = "The symbol not found"
-    print(symplt)
+        result = "The symbol not found"
+    print(result)
+
+def findplt(addr):
+    plt = getplt()
+    resplt = dict(zip(plt.values(),plt.keys()))
+    if addr[2:] in resplt :
+        output = "the function is "
+        output += "\033[33m"
+        output += resplt[addr[2:]]
+        output += "\033[37m"
+    else :
+        output = "Not found"
+    print(output)
+
+def elfsym():
+    plt = getplt()
+    for pltentry in plt :
+        print("\033[33m" + pltentry + "@plt:" + "\033[37m" + hex(int(plt[pltentry],16)))
+
