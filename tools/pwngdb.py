@@ -2,7 +2,11 @@ import gdb
 import subprocess
 import re
 
+plt = {}
 
+def init():
+    global plt
+    plt = getplt()
 
 def showstack():
     pat = "\<.*\>"
@@ -39,6 +43,7 @@ def showreg(reg):
     except :
         output += "\n"
     print(output,end="")
+
 
 def getprocname():
     data = gdb.execute("info proc exe",to_string=True)
@@ -190,7 +195,7 @@ def getplt():
     return plt
 
 def putplt(sym):
-    plt = getplt()
+    #plt = getplt()
     if sym in plt :
         symplt = plt[sym]
         if sym is "plt0":
@@ -202,7 +207,7 @@ def putplt(sym):
     print(result)
 
 def findplt(addr):
-    plt = getplt()
+    #plt = getplt()
     resplt = dict(zip(plt.values(),plt.keys()))
     if addr[2:] in resplt :
         output = "the function is "
@@ -214,7 +219,25 @@ def findplt(addr):
     print(output)
 
 def elfsym():
-    plt = getplt()
+    #plt = getplt()
     for pltentry in plt :
         print("\033[33m" + pltentry + "@plt:" + "\033[37m" + hex(int(plt[pltentry],16)))
 
+def callplt(data):
+    resplt = dict(zip(plt.values(),plt.keys()))
+    result =  re.search("blx.*0x.*",data)
+    if result :
+        addr = result.group().split("0x")[1]
+        if addr in resplt: 
+            return data[:-1] + " <" + resplt[addr] + ">\n" 
+        return data
+    else :
+        return data
+
+def showcurins() :
+    ins = gdb.execute("x/i (unsigned int)$pc | (($cpsr >> 5) & 1)",to_string=True)
+    print(callplt(ins),end="")
+
+def showins():
+    ins = gdb.execute("x/i",to_string=True)
+    print(callplt(ins),end="")

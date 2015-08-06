@@ -145,6 +145,15 @@ set $COLOR_REGVAL_MODIFIED  = $RED
 set $COLOR_SEPARATOR = $BLUE
 set $COLOR_CPUFLAGS = $RED
 
+define ini
+	python init()
+end
+
+define r
+	run
+	ini
+end
+
 #libcbase
 define libc
 	python putlibc()
@@ -2218,8 +2227,9 @@ define context
 	        color $GREEN
             if ($ARM == 1)
                 #       | $cpsr.t (Thumb flag)
-                x/i (unsigned int)$pc | (($cpsr >> 5) & 1)
-            else
+                #x/i (unsigned int)$pc | (($cpsr >> 5) & 1)
+            	python	showcurins()
+			else
     	        x/i $pc
             end
 	        color_reset
@@ -2234,7 +2244,8 @@ define context
         set $context_i--
     end
     while ($context_i > 0)
-        x /i
+        #x /i
+		python showins()
         set $context_i--
     end
     color $COLOR_SEPARATOR
