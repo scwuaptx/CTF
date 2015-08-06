@@ -44,7 +44,6 @@ def showreg(reg):
         output += "\n"
     print(output,end="")
 
-
 def getprocname():
     data = gdb.execute("info proc exe",to_string=True)
     procname = re.search("exe.*",data).group().split("=")[1][2:-1]
@@ -124,6 +123,16 @@ def putld():
 def putcodebase():
     print("\033[34m" + "ld : " + "\033[37m" + hex(codebase()))
 
+
+def ispie():
+    procname = getprocname()
+    result = subprocess.check_output("readelf -h " + procname,shell=True).decode('utf8')
+    if re.search("DYN",result):
+        return True
+    else:
+        return False
+
+
 def off(sym):
     libc = libcbase()
     try :
@@ -187,10 +196,17 @@ def getplt():
     result = subprocess.check_output("objdump -d -j .plt " + procname +
             "| grep -A 31337 .plt\>",shell=True).decode('utf8')
     pltentry = result.split('\n')[1:]
-    temp.append(pltentry[0].split(":")[0].strip())
-    pltentry = pltentry[5:]
-    for i in range(int(len(pltentry)/3)):
-        temp.append(pltentry[i*3].split(":")[0].strip() )
+
+    if ispie():
+        temp.append(hex(int(pltentry[0].split(":")[0].strip(),16) + codebase()))
+        pltentry = pltentry[5:]
+        for i in range(int(len(pltentry)/3)):
+            temp.append(hex(int(pltentry[i*3].split(":")[0].strip(),16) + codebase()) )
+    else :
+        temp.append(pltentry[0].split(":")[0].strip())
+        pltentry = pltentry[5:]
+        for i in range(int(len(pltentry)/3)):
+            temp.append(hex(int(pltentry[i*3].split(":")[0].strip(),16)) )
     plt = dict(zip(got_plt,temp))
     return plt
 
@@ -211,10 +227,10 @@ def findplt(addr):
     #plt = getplt()
     global plt
     resplt = dict(zip(plt.values(),plt.keys()))
-    if addr[2:] in resplt :
+    if addr in resplt :
         output = "the function is "
         output += "\033[33m"
-        output += resplt[addr[2:]]
+        output += resplt[addr]
         output += "\033[37m"
     else :
         output = "Not found"
@@ -231,6 +247,7 @@ def callplt(data):
     result =  re.search("blx.*0x.*",data)
     if result :
         addr = result.group().split("0x")[1]
+        addr = "0x" + addr
         if addr in resplt: 
             return data[:-1] + " <" + resplt[addr] + ">\n" 
         return data
