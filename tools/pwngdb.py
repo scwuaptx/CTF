@@ -196,6 +196,7 @@ def getplt():
 
 def putplt(sym):
     #plt = getplt()
+    global plt
     if sym in plt :
         symplt = plt[sym]
         if sym is "plt0":
@@ -208,6 +209,7 @@ def putplt(sym):
 
 def findplt(addr):
     #plt = getplt()
+    global plt
     resplt = dict(zip(plt.values(),plt.keys()))
     if addr[2:] in resplt :
         output = "the function is "
@@ -220,6 +222,7 @@ def findplt(addr):
 
 def elfsym():
     #plt = getplt()
+    global plt
     for pltentry in plt :
         print("\033[33m" + pltentry + "@plt:" + "\033[37m" + hex(int(plt[pltentry],16)))
 
