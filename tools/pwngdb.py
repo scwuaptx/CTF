@@ -6,7 +6,8 @@ plt = {}
 
 def init():
     global plt
-    plt = getplt()
+    if len(plt) == 0 :
+        plt = getplt()
 
 def showstack():
     pat = "\<.*\>"

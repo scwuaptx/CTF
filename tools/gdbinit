@@ -149,11 +149,6 @@ define ini
 	python init()
 end
 
-define r
-	run
-	ini
-end
-
 #libcbase
 define libc
 	python putlibc()
@@ -3239,6 +3234,7 @@ end
 
 # ____________________misc____________________
 define hook-stop
+	python init()
     if (sizeof(void*) == 8)
         set $64BITS = 1
     else
