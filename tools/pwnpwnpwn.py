@@ -1,6 +1,7 @@
 import struct
 import socket
 import telnetlib
+import re
 
 #pack
 def pack32(data,fmt="<I"):
@@ -73,6 +74,14 @@ def fmtchain(sock,ptrindex,addrindex,addr,val,recpat,byte = 1):
             addr += byte
         sendline(sock,payload)
 
+def xorstr(a,b):
+    return ''.join(chr(ord(x)^ord(y)) for x,y in zip(a,b)) 
+
+def search(data,pat):
+    match = re.search(pat,data)
+    assert(match)
+    result = match.group()
+    return result
 
 def sc(arch="x86"):
     if arch == "x86":
