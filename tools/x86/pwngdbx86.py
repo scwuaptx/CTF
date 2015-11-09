@@ -2,6 +2,20 @@ import gdb
 import subprocess
 import re
 
+
+
+def getarch():
+    data = gdb.execute('show arch',to_string = True)
+    arch =  re.search("currently.*",data)
+    if arch : 
+        if "x86-64" in arch.group() :
+            return "x86-64"
+        else :
+            return  "i386"
+    else :
+        return "error"
+
+
 def procmap():
     data = gdb.execute('info proc exe',to_string = True)
     pid = re.search('process.*',data)
@@ -38,6 +52,7 @@ def ldbase():
     else :
         return 0
 
+
 def codebase():
     infomap = procmap()
     procname = getprocname()
@@ -49,6 +64,34 @@ def codebase():
     else :
         return 0
 
+def gettls():
+    arch = getarch()
+    if arch == "i386" :
+        tlsaddr = libcbase() - 0x1000 + 0x700
+        return tlsaddr
+    elif arch == "x86-64" :
+        gdb.execute("call arch_prctl(0x1003,$rsp-8)")
+        data = gdb.execute("x/x $rsp-8",to_string=True)
+        return int(data.split(":")[1].strip(),16)
+    else:
+        return "error"
+
+def getcanary():
+    arch = getarch()
+    tlsaddr = gettls()
+    if arch == "i386" :
+        offset = 0x14
+        result = gdb.execute("x/x " + hex(tlsaddr + offset),to_string=True).split(":")[1].strip()
+        return int(result ,16)   
+    elif arch == "x86-64" :
+        offset = 0x28
+        result = gdb.execute("x/x " + hex(tlsaddr + offset),to_string=True).split(":")[1].strip()
+        return int(result,16)
+    else :
+        return "error"
+
+def puttls():
+    print("\033[34m" + "tls : " + "\033[37m" + hex(gettls()))
 
 def putlibc():
     print("\033[34m" + "libc : " + "\033[37m" + hex(libcbase()))
@@ -56,10 +99,11 @@ def putlibc():
 def putld():
     print("\033[34m" + "ld : " + "\033[37m" + hex(ldbase()))
 
-
 def putcodebase():
-    print("\033[34m" + "ld : " + "\033[37m" + hex(codebase()))
+    print("\033[34m" + "codebase : " + "\033[37m" + hex(codebase()))
 
+def putcanary():
+    print("\033[34m" + "canary : " + "\033[37m" + hex(getcanary()))
 
 def off(sym):
     libc = libcbase()
