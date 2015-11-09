@@ -184,6 +184,11 @@ def attachprog(procname):
     pidlist = subprocess.check_output("pidof " + procname,shell=True).split()
     gdb.execute("attach " + pidlist[0])
 
+def rop():
+    procname = getprocname()
+    subprocess.call("ROPgadget --binary " + procname,shell=True)
+
+
 def bcall(sym):
     call = searchcall(sym)
     if "not found" in call :

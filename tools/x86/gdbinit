@@ -53,6 +53,10 @@ define syscall
 	python findsyscall()
 end
 
+define rop
+	python rop()
+end
+
 define attprog
 	python attachprog("$arg0")
 end
