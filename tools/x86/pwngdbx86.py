@@ -53,16 +53,27 @@ def ldbase():
         return 0
 
 
-def codebase():
+def codeaddr():
     infomap = procmap()
     procname = getprocname()
     pat = ".*" + procname
-    data = re.search(pat,infomap)
+    data = re.findall(pat,infomap)
     if data :
-        codeaddr = data.group().split("-")[0]
-        return int(codeaddr,16)
+        codebase = data[0].split("-")[0]
+        codeend = data[0].split("-")[1].split()[0]
+        return (int(codebase,16),int(codeend,16))
     else :
-        return 0
+        return (0,0)
+
+def findsyscall():
+    arch = getarch()
+    start,end = codeaddr()
+    if arch == "x86-64" :
+        gdb.execute("find 0x050f " + hex(start) + " " + hex(end) )
+    elif arch == "i386":
+        gdb.execute("find 0x80cd " + hex(start) + " " + hex(end) )
+    else :
+        print("error")
 
 def gettls():
     arch = getarch()
@@ -100,7 +111,7 @@ def putld():
     print("\033[34m" + "ld : " + "\033[37m" + hex(ldbase()))
 
 def putcodebase():
-    print("\033[34m" + "codebase : " + "\033[37m" + hex(codebase()))
+    print("\033[34m" + "codebase : " + "\033[37m" + hex(codeaddr()[0]))
 
 def putcanary():
     print("\033[34m" + "canary : " + "\033[37m" + hex(getcanary()))
@@ -168,6 +179,10 @@ def length(bit,pat):
 def putfindcall(sym):
     output = searchcall(sym)
     print(output.decode('utf8'))
+
+def attachprog(procname):
+    pidlist = subprocess.check_output("pidof " + procname,shell=True).split()
+    gdb.execute("attach " + pidlist[0])
 
 def bcall(sym):
     call = searchcall(sym)

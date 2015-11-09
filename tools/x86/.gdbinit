@@ -1,11 +1,21 @@
-source ~/peda/peda.py
-source ~/pwngdbx86.py
+source /home/angelboy/peda/peda.py
+source /home/angelboy/pwngdbx86.py
+
 define libc
 	python putlibc()
 end
+define findfmt
+	python findfmt()
+end
+
 define ld
 	python putld()
 end
+
+define codebase
+	python putcodebase()
+end
+
 define off
 	python putoff("$arg0")
 end
@@ -21,7 +31,28 @@ end
 define findcall
 	python putfindcall("$arg0")
 end
-
 define bcall
 	python bcall("$arg0")
+end
+define abcd
+	python abcd("$arg0")
+end
+define length
+	python length("$arg0","$arg1")
+end
+
+define tls
+	python puttls()
+end
+
+define canary
+	python putcanary()
+end
+
+define syscall
+	python findsyscall()
+end
+
+define attprog
+	python attachprog("$arg0")
 end
