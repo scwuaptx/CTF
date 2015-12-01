@@ -53,7 +53,7 @@ def ldbase():
         return 0
 
 
-def codeaddr():
+def codeaddr(): # ret (start,end)
     infomap = procmap()
     procname = getprocname()
     pat = ".*" + procname
@@ -195,13 +195,13 @@ def bcall(sym):
         print("symbol not found")
     else :
         if ispie():
-            codeaddr = codebase()
-            for calladdr in call.split('\n')[:-1]: 
-                addr = int(calladdr.split(':')[0],16) + codeaddr
+            codebase,codeend = codeaddr()
+            for callbase in call.split('\n')[:-1]: 
+                addr = int(callbase.split(':')[0],16) + codebase
                 cmd = "b*" + hex(addr)
                 print(gdb.execute(cmd,to_string=True))
         else:
-            for calladdr in  call.split('\n')[:-1]:
-                addr = int(calladdr.split(':')[0],16)
+            for callbase in  call.split('\n')[:-1]:
+                addr = int(callbase.split(':')[0],16)
                 cmd = "b*" + hex(addr)
                 print(gdb.execute(cmd,to_string=True))
