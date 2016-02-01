@@ -68,3 +68,7 @@ end
 define fastbin
 	python putfastbin()
 end
+
+define heapinfo
+	python putheapinfo()
+end
