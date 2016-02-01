@@ -61,6 +61,15 @@ def ldbase():
     else :
         return 0
 
+def getheapbase():
+    infomap = procmap()
+    data = re.search(".*heap\]",infomap)
+    if data :
+        heapbase = data.group().split("-")[0]
+        return int(heapbase,16)
+    else :
+        return 0
+
 
 def codeaddr(): # ret (start,end)
     infomap = procmap()
@@ -115,6 +124,13 @@ def puttls():
 
 def putlibc():
     print("\033[34m" + "libc : " + "\033[37m" + hex(libcbase()))
+
+def putheap():
+    heapbase = getheapbase()
+    if heapbase :
+        print("\033[34m" + "heapbase : " + "\033[37m" + hex(heapbase))
+    else :
+        print("heap not found")
 
 def putld():
     print("\033[34m" + "ld : " + "\033[37m" + hex(ldbase()))

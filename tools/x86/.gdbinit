@@ -60,3 +60,8 @@ end
 define attprog
 	python attachprog("$arg0")
 end
+
+define heap
+	python putheap()
+end
+
