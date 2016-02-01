@@ -29,6 +29,15 @@ def procmap():
     else :
         return "error"
 
+def iscplus():
+    name = getprocname()
+    data = subprocess.check_output("readelf -s " + name,shell=True).decode('utf8')
+    if "CXX" in data :
+        return True
+    else :
+        return False
+
+
 def getprocname():
     data = gdb.execute("info proc exe",to_string=True)
     procname = re.search("exe.*",data).group().split("=")[1][2:-1]
@@ -140,27 +149,35 @@ def putoff(sym) :
 
 def got():
     procname = getprocname()
-    got = subprocess.check_output("objdump -R " + procname,shell=True)[:-2]
-    print(got.decode('utf8'))
+    cmd = "objdump -R "
+    if iscplus :
+        cmd += "--demangle "
+    cmd += procname
+    got = subprocess.check_output(cmd,shell=True)[:-2].decode('utf8')
+    print(got)
 
 def dyn():
     data = gdb.execute("info proc exe",to_string=True)
     procname = re.search("exe.*",data).group().split("=")[1][2:-1]
-    dyn = subprocess.check_output("readelf -d " + procname,shell=True)
-    print(dyn.decode('utf8'))
+    dyn = subprocess.check_output("readelf -d " + procname,shell=True).decode('utf8')
+    print(dyn)
 
 def searchcall(sym):
     procname = getprocname()
+    cmd = "objdump -d -M intel "
+    if iscplus :
+        cmd += "--demangle "
+    cmd += procname
     try :
-        call = subprocess.check_output("objdump -d -M intel " + procname 
-                + "| grep \"call.*" + sym + "@plt>\""  ,shell=True)
+        call = subprocess.check_output(cmd
+                + "| grep \"call.*" + sym + "@plt>\""  ,shell=True).decode('utf8')
         return call
     except :
         return "symbol not found"
 
 def ispie():
     procname = getprocname()
-    result = subprocess.check_output("readelf -h " + procname,shell=True)
+    result = subprocess.check_output("readelf -h " + procname,shell=True).decode('utf8')
     if re.search("DYN",result):
         return True
     else:
@@ -178,11 +195,13 @@ def length(bit,pat):
 
 def putfindcall(sym):
     output = searchcall(sym)
-    print(output.decode('utf8'))
+    print(output)
 
 def attachprog(procname):
-    pidlist = subprocess.check_output("pidof " + procname,shell=True).split()
+    pidlist = subprocess.check_output("pidof " + procname,shell=True).decode('utf8').split()
     gdb.execute("attach " + pidlist[0])
+    if iscplus() :
+        gdb.execute("set print asm-demangle on")
 
 def rop():
     procname = getprocname()
