@@ -151,14 +151,17 @@ def off(sym):
         symaddr = int(sym,16)
         return symaddr-libc
     except :
-        data = gdb.execute("x/x " + sym ,to_string=True)
-        if "No symbol" in data:
+        try :
+            data = gdb.execute("x/x " + sym ,to_string=True)
+            if "No symbol" in data:
+                return 0
+            else :
+                data = re.search("0x.*[0-9a-f] ",data)
+                data = data.group()
+                symaddr = int(data[:-1] ,16)
+                return symaddr-libc
+        except :
             return 0
-        else :
-            data = re.search("0x.*[0-9a-f] ",data)
-            data = data.group()
-            symaddr = int(data[:-1] ,16)
-            return symaddr-libc
 
 def putoff(sym) :
     symaddr = off(sym)
