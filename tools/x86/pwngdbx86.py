@@ -1,8 +1,12 @@
 import gdb
 import subprocess
 import re
-
-
+import copy
+main_arena = 0
+main_arena_off = 0
+fastbinsize = 10
+fastbin = []
+freememoryarea = []
 
 def getarch():
     data = gdb.execute('show arch',to_string = True)
@@ -240,3 +244,84 @@ def bcall(sym):
                 addr = int(callbase.split(':')[0],16)
                 cmd = "b*" + hex(addr)
                 print(gdb.execute(cmd,to_string=True))
+
+def set_main_arena():
+    global main_arena
+    global main_arena_off
+    offset = off("&main_arena")
+    libc = libcbase()
+    if offset :
+        main_arena_off = offset
+        main_arena = libc + main_arena_off
+    elif main_arena_off :
+        main_arena = libc + main_arena_off
+    else :
+        print("You need to set main arena address")
+
+def check_overlap(addr):
+    global freememoryarea
+    for (start,end) in freememoryarea :
+        if addr >= start and addr < end :
+            return True
+    return False
+
+def get_fast_bin():
+    global main_arena
+    global fastbin
+    global fastbinsize
+    global freememoryarea
+    fastbin = []
+    freememoryarea = []
+    ptrsize = 4
+    arch = getarch()
+    if arch == "x86-64":
+        ptrsize = 8
+    if not main_arena:
+        set_main_arena()
+    if main_arena :
+        for i in range(fastbinsize):
+            fastbin.append([])
+            chunk = {}
+            is_overlap = False
+            cmd = "x/x " + hex(main_arena + i*ptrsize + 8)
+            chunk["addr"] = int(gdb.execute(cmd,to_string=True).split(":")[1].strip(),16)
+            while chunk["addr"] and not is_overlap:
+                cmd = "x/x " + hex(chunk["addr"]+ptrsize*1)
+                try :
+                    chunk["size"] = int(gdb.execute(cmd,to_string=True).split(":")[1].strip(),16)
+                except :
+                    chunk["memerror"] = True
+                    break
+                is_overlap = check_overlap(chunk["addr"])
+                chunk["overlap"] = is_overlap
+                freememoryarea.append(copy.deepcopy((chunk["addr"],chunk["addr"]+chunk["size"])))
+                fastbin[i].append(copy.deepcopy(chunk))
+                cmd = "x/x " + hex(chunk["addr"]+ptrsize*2)
+                chunk = {}
+                chunk["addr"] = int(gdb.execute(cmd,to_string=True).split(":")[1].strip(),16)
+            if not is_overlap:
+                chunk["size"] = 0
+                chunk["overlap"] = False
+                fastbin[i].append(copy.deepcopy(chunk))
+
+def putfastbin():
+    ptrsize = 4
+    arch = getarch()
+    if arch == "x86-64":
+        ptrsize = 8
+    get_fast_bin()
+    for i,bins in enumerate(fastbin) :
+        cursize = (ptrsize*2)*(i+2)
+        print("\033[32m(0x%02x) fastbin[%d]:\033[37m " % (cursize,i),end = "")
+        for chunk in bins :
+            if "memerror" in chunk :
+                print("\033[33m0x%x (Memory Error)\033[37m" % chunk["addr"],end = "")
+            elif (chunk["size"] & 0xf0) != cursize and chunk["addr"] != 0 :
+                print("\033[36m0x%x (size error (0x%x))\033[37m" % (chunk["addr"],chunk["size"]),end = "")
+            elif chunk["overlap"]:
+                print("\033[31m0x%x (overlap chunk)\033[37m" % chunk["addr"],end = "")
+            else  :
+                print("0x%x" % chunk["addr"],end = "")
+            if chunk != bins[-1]:
+                print(" --> ",end = "")
+        print("")

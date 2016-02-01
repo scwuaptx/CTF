@@ -65,3 +65,6 @@ define heap
 	python putheap()
 end
 
+define fastbin
+	python putfastbin()
+end
