@@ -260,10 +260,10 @@ def set_main_arena():
 
 def check_overlap(addr):
     global freememoryarea
-    for (start,end) in freememoryarea :
+    for (start,end,chunk) in freememoryarea :
         if addr >= start and addr < end :
-            return True
-    return False
+            return chunk
+    return None
 
 def get_fast_bin():
     global main_arena
@@ -294,7 +294,7 @@ def get_fast_bin():
                     break
                 is_overlap = check_overlap(chunk["addr"])
                 chunk["overlap"] = is_overlap
-                freememoryarea.append(copy.deepcopy((chunk["addr"],chunk["addr"]+chunk["size"])))
+                freememoryarea.append(copy.deepcopy((chunk["addr"],chunk["addr"]+chunk["size"],chunk)))
                 fastbin[i].append(copy.deepcopy(chunk))
                 cmd = "x/x " + hex(chunk["addr"]+ptrsize*2)
                 chunk = {}
@@ -318,8 +318,8 @@ def putfastbin():
                 print("\033[33m0x%x (Memory Error)\033[37m" % chunk["addr"],end = "")
             elif (chunk["size"] & 0xf0) != cursize and chunk["addr"] != 0 :
                 print("\033[36m0x%x (size error (0x%x))\033[37m" % (chunk["addr"],chunk["size"]),end = "")
-            elif chunk["overlap"]:
-                print("\033[31m0x%x (overlap chunk)\033[37m" % chunk["addr"],end = "")
+            elif chunk["overlap"] :
+                print("\033[31m0x%x (overlap chunk with \033[36m0x%x\033[31m )\033[37m" % (chunk["addr"],chunk["overlap"]["addr"]),end = "")
             else  :
                 print("0x%x" % chunk["addr"],end = "")
             if chunk != bins[-1]:
