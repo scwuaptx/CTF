@@ -297,13 +297,13 @@ def get_fast_bin():
             while chunk["addr"] and not is_overlap:
                 cmd = "x/" + word + hex(chunk["addr"]+ptrsize*1)
                 try :
-                    chunk["size"] = int(gdb.execute(cmd,to_string=True).split(":")[1].strip(),16) & 0xf8
+                    chunk["size"] = int(gdb.execute(cmd,to_string=True).split(":")[1].strip(),16) & 0xfffffffffffffff8
                 except :
                     chunk["memerror"] = True
                     break
                 is_overlap = check_overlap(chunk["addr"])
                 chunk["overlap"] = is_overlap
-                freememoryarea.append(copy.deepcopy((chunk["addr"],chunk["addr"]+chunk["size"],chunk)))
+                freememoryarea.append(copy.deepcopy((chunk["addr"],chunk["addr"] + (ptrsize*2)*(i+2) ,chunk)))
                 fastbin[i].append(copy.deepcopy(chunk))
                 cmd = "x/" + word + hex(chunk["addr"]+ptrsize*2)
                 chunk = {}
@@ -325,7 +325,7 @@ def putfastbin():
         for chunk in bins :
             if "memerror" in chunk :
                 print("\033[33m0x%x (Memory Error)\033[37m" % chunk["addr"],end = "")
-            elif (chunk["size"] & 0xf8) != cursize and chunk["addr"] != 0 :
+            elif chunk["size"] != cursize and chunk["addr"] != 0 :
                 print("\033[36m0x%x (size error (0x%x))\033[37m" % (chunk["addr"],chunk["size"]),end = "")
             elif chunk["overlap"] :
                 print("\033[31m0x%x (overlap chunk with \033[36m0x%x\033[31m )\033[37m" % (chunk["addr"],chunk["overlap"]["addr"]),end = "")
