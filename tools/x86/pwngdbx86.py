@@ -297,7 +297,7 @@ def get_fast_bin():
             while chunk["addr"] and not is_overlap:
                 cmd = "x/" + word + hex(chunk["addr"]+ptrsize*1)
                 try :
-                    chunk["size"] = int(gdb.execute(cmd,to_string=True).split(":")[1].strip(),16)
+                    chunk["size"] = int(gdb.execute(cmd,to_string=True).split(":")[1].strip(),16) & 0xf8
                 except :
                     chunk["memerror"] = True
                     break
