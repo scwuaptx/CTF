@@ -4,6 +4,7 @@ import re
 import copy
 main_arena = 0
 main_arena_off = 0
+main_arena_off_32 = 0
 fastbinsize = 10
 fastbin = []
 freememoryarea = []
@@ -253,6 +254,9 @@ def set_main_arena():
     global main_arena_off
     offset = off("&main_arena")
     libc = libcbase()
+    arch = getarch()
+    if arch == "i386":
+        main_arena_off = main_arena_off_32
     if offset :
         main_arena_off = offset
         main_arena = libc + main_arena_off
@@ -319,7 +323,7 @@ def putfastbin():
         for chunk in bins :
             if "memerror" in chunk :
                 print("\033[33m0x%x (Memory Error)\033[37m" % chunk["addr"],end = "")
-            elif (chunk["size"] & 0xf0) != cursize and chunk["addr"] != 0 :
+            elif (chunk["size"] & 0xf8) != cursize and chunk["addr"] != 0 :
                 print("\033[36m0x%x (size error (0x%x))\033[37m" % (chunk["addr"],chunk["size"]),end = "")
             elif chunk["overlap"] :
                 print("\033[31m0x%x (overlap chunk with \033[36m0x%x\033[31m )\033[37m" % (chunk["addr"],chunk["overlap"]["addr"]),end = "")
