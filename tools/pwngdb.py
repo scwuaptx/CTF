@@ -6,7 +6,9 @@ plt = {}
 
 def init():
     global plt
-    if len(plt) == 0 :
+    procname = getprocname()
+    result = subprocess.check_output("file " + procname,shell=True).decode('utf8')
+    if len(plt) == 0 and "statically" not in result :
         plt = getplt()
 
 def showstack():
