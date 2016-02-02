@@ -332,7 +332,7 @@ def get_fast_bin():
     else :
         ptrsize = 4
         word = "wx "
-    for i in range(fastbinsize):
+    for i in range(fastbinsize-3):
         fastbin.append([])
         chunk = {}
         is_overlap = False
