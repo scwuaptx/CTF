@@ -4,8 +4,8 @@ import re
 import copy
 main_arena = 0
 main_arena_off = 0
-main_arena_off_32 = 0x1b7840
-#main_arena_off_32 = 0
+#main_arena_off_32 = 0x1b7840
+main_arena_off_32 = 0
 top = {}
 last_remainder = {}
 fastbinsize = 10
@@ -13,7 +13,6 @@ fastbin = []
 freememoryarea = []
 unsortbin = []
 smallbin = {}  #{size:bin}
-
 
 def getarch():
     data = gdb.execute('show arch',to_string = True)
@@ -409,7 +408,7 @@ def trace_normal_bin(chunkhead):
                 cmd = "x/" + word + hex(fd + ptrsize*3)
                 fd_bk = int(gdb.execute(cmd,to_string=True).split(":")[1].strip(),16)
                 if chunk["addr"] != fd_bk :
-                    chunk["memerror"] = "\033[31mdoubly linked list corruption {0} != {1} and \033[36m{2}\033[31m is broken".format(hex(chunk["addr"]),hex(fd_bk),hex(fd))
+                    chunk["memerror"] = "\033[31mdoubly linked list corruption {0} != {1} and \033[36m{2}\033[31m or \033[36m{3}\033[31m is broken".format(hex(chunk["addr"]),hex(fd_bk),hex(fd),hex(chunk["addr"]))
                     bins.append(copy.deepcopy(chunk))
                     break
             except :
