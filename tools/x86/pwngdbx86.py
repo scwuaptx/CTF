@@ -298,6 +298,8 @@ def get_top_lastremainder():
         cmd = "x/" + word + hex(chunk["addr"]+ptrsize*1)
         try :
             chunk["size"] = int(gdb.execute(cmd,to_string=True).split(":")[1].strip(),16) & 0xfffffffffffffff8
+            if chunk["size"] > 0x21000 :
+                chunk["memerror"] = "top is broken ?"
         except :
             chunk["memerror"] = "invaild memory"
     top = copy.deepcopy(chunk)
@@ -482,7 +484,10 @@ def putheapinfo():
     if arch == "x86-64":
         ptrsize = 8
     putfastbin()
-    print("\033[35m %16s:\033[37m 0x%x \033[33m(size : 0x%x)\033[37m " % ("top",top["addr"],top["size"]))
+    if "memerror" in top :
+        print("\033[35m %16s:\033[31m 0x%x \033[33m(size : 0x%x)\033[31m (%s)\033[37m " % ("top",top["addr"],top["size"],top["memerror"]))
+    else :
+        print("\033[35m %16s:\033[37m 0x%x \033[33m(size : 0x%x)\033[37m " % ("top",top["addr"],top["size"]))
     print("\033[35m %16s:\033[37m 0x%x \033[33m(size : 0x%x)\033[37m " % ("last_remainder",last_remainder["addr"],last_remainder["size"]))
     if unsortbin and len(unsortbin) > 0 :
         print("\033[35m %16s:\033[37m " % "unsortbin",end="")
