@@ -12,6 +12,8 @@ fastbinsize = 10
 fastbin = []
 freememoryarea = []
 unsortbin = []
+smallbin = {}  #{size:bin}
+
 
 def getarch():
     data = gdb.execute('show arch',to_string = True)
@@ -440,6 +442,27 @@ def get_unsortbin():
     unsortbin = trace_normal_bin(chunkhead)
 
 
+def get_smailbin():
+    global main_arena
+    global smallbin
+    max_smallbin_size = 512
+    smallbin = {}
+    ptrsize = 4
+    word = "wx "
+    arch = getarch()
+    if arch == "x86-64":
+        ptrsize = 8
+        word = "gx "
+        max_smallbin_size *= 2
+    for size in range(0x20,max_smallbin_size,ptrsize*2):
+        chunkhead = {}
+        idx = int((size/0x10))-1
+        cmd = "x/" + word + hex(main_arena + (fastbinsize+2)*ptrsize+8 + idx*ptrsize*2)  # calc the smallbin index
+        chunkhead["addr"] = int(gdb.execute(cmd,to_string=True).split(":")[1].strip(),16)
+        bins = trace_normal_bin(chunkhead)
+        if len(bins) > 0 :
+            smallbin[hex(size)] = copy.deepcopy(bins)
+
 
 def get_heap_info():
     global main_arena
@@ -449,6 +472,7 @@ def get_heap_info():
         set_main_arena()
     if main_arena :
         get_unsortbin()
+        get_smailbin()
         get_fast_bin()
         get_top_lastremainder()
         
@@ -462,7 +486,7 @@ def putfastbin():
     get_heap_info()
     for i,bins in enumerate(fastbin) :
         cursize = (ptrsize*2)*(i+2)
-        print("\033[32m(0x%02x) fastbin[%d]:\033[37m " % (cursize,i),end = "")
+        print("\033[32m(0x%02x)     fastbin[%d]:\033[37m " % (cursize,i),end = "")
         for chunk in bins :
             if "memerror" in chunk :
                 print("\033[31m0x%x (%s)\033[37m" % (chunk["addr"],chunk["memerror"]),end = "")
@@ -485,25 +509,41 @@ def putheapinfo():
         ptrsize = 8
     putfastbin()
     if "memerror" in top :
-        print("\033[35m %16s:\033[31m 0x%x \033[33m(size : 0x%x)\033[31m (%s)\033[37m " % ("top",top["addr"],top["size"],top["memerror"]))
+        print("\033[35m %20s:\033[31m 0x%x \033[33m(size : 0x%x)\033[31m (%s)\033[37m " % ("top",top["addr"],top["size"],top["memerror"]))
     else :
-        print("\033[35m %16s:\033[37m 0x%x \033[33m(size : 0x%x)\033[37m " % ("top",top["addr"],top["size"]))
-    print("\033[35m %16s:\033[37m 0x%x \033[33m(size : 0x%x)\033[37m " % ("last_remainder",last_remainder["addr"],last_remainder["size"]))
+        print("\033[35m %20s:\033[37m 0x%x \033[33m(size : 0x%x)\033[37m " % ("top",top["addr"],top["size"]))
+    print("\033[35m %20s:\033[37m 0x%x \033[33m(size : 0x%x)\033[37m " % ("last_remainder",last_remainder["addr"],last_remainder["size"]))
     if unsortbin and len(unsortbin) > 0 :
-        print("\033[35m %16s:\033[37m " % "unsortbin",end="")
+        print("\033[35m %20s:\033[37m " % "unsortbin",end="")
         for chunk in unsortbin :
             if "memerror" in chunk :
                 print("\033[31m0x%x (%s)\033[37m" % (chunk["addr"],chunk["memerror"]),end = "")
             elif chunk["overlap"] :
                 print("\033[31m0x%x (overlap chunk with \033[36m0x%x\033[31m )\033[37m" % (chunk["addr"],chunk["overlap"]["addr"]),end = "")
             elif chunk == unsortbin[-1]:
-                print("\033[34m0x%x\033[37m \33[33m(size = 0x%x)\033[37m" % (chunk["addr"],chunk["size"]),end = "")
+                print("\033[34m0x%x\033[37m \33[33m(size : 0x%x)\033[37m" % (chunk["addr"],chunk["size"]),end = "")
             else :
-                print("0x%x \33[33m(size = 0x%x)\033[37m" % (chunk["addr"],chunk["size"]),end = "")
+                print("0x%x \33[33m(size : 0x%x)\033[37m" % (chunk["addr"],chunk["size"]),end = "")
             if chunk != unsortbin[-1]:
                 print(" <--> ",end = "")
         print("")
     else :
-        print("\033[35m %16s:\033[37m 0x%x" % ("unsortbin",0)) #no chunk in unsortbin
-
+        print("\033[35m %20s:\033[37m 0x%x" % ("unsortbin",0)) #no chunk in unsortbin
+    for size,bins in smallbin.items() :
+        idx = int((int(size,16)/0x10))-2 
+        print("\033[33m(0x%03x)  %s[%2d]:\033[37m " % (int(size,16),"smallbin",idx),end="")
+        for chunk in bins :
+            if "memerror" in chunk :
+                print("\033[31m0x%x (%s)\033[37m" % (chunk["addr"],chunk["memerror"]),end = "")
+            elif chunk["size"] != int(size,16) :
+                print("\033[36m0x%x (size error (0x%x))\033[37m" % (chunk["addr"],chunk["size"]),end = "")
+            elif chunk["overlap"] :
+                print("\033[31m0x%x (overlap chunk with \033[36m0x%x\033[31m )\033[37m" % (chunk["addr"],chunk["overlap"]["addr"]),end = "")
+            elif chunk == bins[-1]:
+                print("\033[34m0x%x\033[37m" % chunk["addr"],end = "")
+            else :
+                print("0x%x " % chunk["addr"],end = "")
+            if chunk != bins[-1]:
+                print(" <--> ",end = "")
+        print("")
 
