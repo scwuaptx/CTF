@@ -4,8 +4,8 @@ import re
 import copy
 main_arena = 0
 main_arena_off = 0
-#main_arena_off_32 = 0x1b7840
-main_arena_off_32 = 0
+main_arena_off_32 = 0x1b7840
+#main_arena_off_32 = 0
 top = {}
 last_remainder = {}
 fastbinsize = 10
@@ -454,9 +454,9 @@ def get_smailbin():
         ptrsize = 8
         word = "gx "
         max_smallbin_size *= 2
-    for size in range(0x20,max_smallbin_size,ptrsize*2):
+    for size in range(ptrsize*4,max_smallbin_size,ptrsize*2):
         chunkhead = {}
-        idx = int((size/0x10))-1
+        idx = int((size/(ptrsize*2)))-1
         cmd = "x/" + word + hex(main_arena + (fastbinsize+2)*ptrsize+8 + idx*ptrsize*2)  # calc the smallbin index
         chunkhead["addr"] = int(gdb.execute(cmd,to_string=True).split(":")[1].strip(),16)
         bins = trace_normal_bin(chunkhead)
@@ -530,7 +530,7 @@ def putheapinfo():
     else :
         print("\033[35m %20s:\033[37m 0x%x" % ("unsortbin",0)) #no chunk in unsortbin
     for size,bins in smallbin.items() :
-        idx = int((int(size,16)/0x10))-2 
+        idx = int((int(size,16)/(ptrsize*2)))-2 
         print("\033[33m(0x%03x)  %s[%2d]:\033[37m " % (int(size,16),"smallbin",idx),end="")
         for chunk in bins :
             if "memerror" in chunk :
