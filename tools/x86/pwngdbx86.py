@@ -417,6 +417,7 @@ def trace_normal_bin(chunkhead):
 def get_unsortbin():
     global main_arena
     global unsortbin
+    unsortbin = []
     ptrsize = 4
     word = "wx "
     arch = getarch()
@@ -432,6 +433,8 @@ def get_unsortbin():
 
 def get_heap_info():
     global main_arena
+    global freememoryarea
+    freememoryarea = []
     if not main_arena:
         set_main_arena()
     if main_arena :
@@ -457,6 +460,8 @@ def putfastbin():
                 print("\033[36m0x%x (size error (0x%x))\033[37m" % (chunk["addr"],chunk["size"]),end = "")
             elif chunk["overlap"] :
                 print("\033[31m0x%x (overlap chunk with \033[36m0x%x\033[31m )\033[37m" % (chunk["addr"],chunk["overlap"]["addr"]),end = "")
+            elif chunk == bins[0]  :
+                print("\033[35m0x%x\033[37m" % chunk["addr"],end = "")
             else  :
                 print("0x%x" % chunk["addr"],end = "")
             if chunk != bins[-1]:
@@ -478,12 +483,14 @@ def putheapinfo():
                 print("\033[33m0x%x (%s)\033[37m" % (chunk["addr"],chunk["memerror"]),end = "")
             elif chunk["overlap"] :
                 print("\033[31m0x%x (overlap chunk with \033[36m0x%x\033[31m )\033[37m" % (chunk["addr"],chunk["overlap"]["addr"]),end = "")
-            else  :
-                print("0x%x" % chunk["addr"],end = "")
+            elif chunk == unsortbin[-1]:
+                print("\033[35m0x%x\033[37m \33[33m(size = 0x%x)\033[37m" % (chunk["addr"],chunk["size"]),end = "")
+            else :
+                print("0x%x \33[33m(size = 0x%x)\033[37m" % (chunk["addr"],chunk["size"]),end = "")
             if chunk != unsortbin[-1]:
                 print(" --> ",end = "")
         print("")
     else :
-        print("\033[34m %16s:\033[37m 0x%x" % ("unsortbin",0))
+        print("\033[34m %16s:\033[37m 0x%x" % ("unsortbin",0)) #no chunk in unsortbin
 
 
