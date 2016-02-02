@@ -379,7 +379,7 @@ def trace_normal_bin(chunkhead):
             cmd = "x/" + word + hex(bk+ptrsize*2)
             bk_fd = int(gdb.execute(cmd,to_string=True).split(":")[1].strip(),16)
             if bk_fd != chunkhead["addr"]:
-                chunkhead["memerror"] = "doubly linked list corruption {0} != {1}".format(chunkhead["addr"],bk_fd)
+                chunkhead["memerror"] = "\033[31mdoubly linked list corruption {0} != {1} and \033[36m{2}\033[31m is broken".format(hex(chunkhead["addr"]),hex(bk_fd),hex(chunkhead["addr"]))
                 bins.append(copy.deepcopy(chunkhead))
                 return bins
             fd = chunkhead["addr"]
@@ -405,7 +405,7 @@ def trace_normal_bin(chunkhead):
                 cmd = "x/" + word + hex(fd + ptrsize*3)
                 fd_bk = int(gdb.execute(cmd,to_string=True).split(":")[1].strip(),16)
                 if chunk["addr"] != fd_bk :
-                    chunk["memerror"] = "doubly linked list corruption {0} != {1}".format(hex(fd),hex(fd_bk))
+                    chunk["memerror"] = "\033[31mdoubly linked list corruption {0} != {1} and \033[36m{2}\033[31m is broken".format(hex(chunk["addr"]),hex(fd_bk),hex(fd))
                     bins.append(copy.deepcopy(chunk))
                     break
             except :
@@ -482,8 +482,8 @@ def putheapinfo():
     if arch == "x86-64":
         ptrsize = 8
     putfastbin()
-    print("\033[35m %16s:\033[37m 0x%x \033[33m (size : 0x%x)\033[37m " % ("top",top["addr"],top["size"]))
-    print("\033[35m %16s:\033[37m 0x%x \033[33m (size : 0x%x)\033[37m " % ("last_remainder",last_remainder["addr"],last_remainder["size"]))
+    print("\033[35m %16s:\033[37m 0x%x \033[33m(size : 0x%x)\033[37m " % ("top",top["addr"],top["size"]))
+    print("\033[35m %16s:\033[37m 0x%x \033[33m(size : 0x%x)\033[37m " % ("last_remainder",last_remainder["addr"],last_remainder["size"]))
     if unsortbin and len(unsortbin) > 0 :
         print("\033[35m %16s:\033[37m " % "unsortbin",end="")
         for chunk in unsortbin :
@@ -499,6 +499,6 @@ def putheapinfo():
                 print(" <--> ",end = "")
         print("")
     else :
-        print("\033[34m %16s:\033[37m 0x%x" % ("unsortbin",0)) #no chunk in unsortbin
+        print("\033[35m %16s:\033[37m 0x%x" % ("unsortbin",0)) #no chunk in unsortbin
 
 
