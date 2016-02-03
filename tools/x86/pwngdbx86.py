@@ -20,6 +20,7 @@ unsortbin = []
 smallbin = {}  #{size:bin}
 largebin = {}
 tracemode = False
+tracelargebin = False
 mallocbp = None
 freebp = None
 DEBUG = False  #debug msg (free and malloc)if you want
@@ -677,7 +678,8 @@ def get_heap_info():
     if main_arena :
         get_unsortbin()
         get_smailbin()
-        get_largebin()
+        if tracelargebin :
+            get_largebin()
         get_fast_bin()
         get_top_lastremainder()
 
