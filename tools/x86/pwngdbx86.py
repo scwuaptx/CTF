@@ -776,7 +776,7 @@ def putheapinfo():
         print("\033[35m %20s:\033[37m 0x%x" % ("unsortbin",0)) #no chunk in unsortbin
     for size,bins in smallbin.items() :
         idx = int((int(size,16)/(ptrsize*2)))-2 
-        print("\033[33m(0x%03x)        %s[%2d]:\033[37m " % (int(size,16),"smallbin",idx),end="")
+        print("\033[33m(0x%03x)  %s[%2d]:\033[37m " % (int(size,16),"smallbin",idx),end="")
         for chunk in bins :
             if "memerror" in chunk :
                 print("\033[31m0x%x (%s)\033[37m" % (chunk["addr"],chunk["memerror"]),end = "")
