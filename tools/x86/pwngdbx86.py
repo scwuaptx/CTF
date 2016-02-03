@@ -459,7 +459,7 @@ def get_smailbin():
         cmd = "x/" + word + hex(main_arena + (fastbinsize+2)*ptrsize+8 + idx*ptrsize*2)  # calc the smallbin index
         chunkhead["addr"] = int(gdb.execute(cmd,to_string=True).split(":")[1].strip(),16)
         bins = trace_normal_bin(chunkhead)
-        if len(bins) > 0 :
+        if bins and len(bins) > 0 :
             smallbin[hex(size)] = copy.deepcopy(bins)
 
 
@@ -510,8 +510,8 @@ def putheapinfo():
     if "memerror" in top :
         print("\033[35m %20s:\033[31m 0x%x \033[33m(size : 0x%x)\033[31m (%s)\033[37m " % ("top",top["addr"],top["size"],top["memerror"]))
     else :
-        print("\033[35m %20s:\033[37m 0x%x \033[33m(size : 0x%x)\033[37m " % ("top",top["addr"],top["size"]))
-    print("\033[35m %20s:\033[37m 0x%x \033[33m(size : 0x%x)\033[37m " % ("last_remainder",last_remainder["addr"],last_remainder["size"]))
+        print("\033[35m %20s:\033[34m 0x%x \033[33m(size : 0x%x)\033[37m " % ("top",top["addr"],top["size"]))
+    print("\033[35m %20s:\033[34m 0x%x \033[33m(size : 0x%x)\033[37m " % ("last_remainder",last_remainder["addr"],last_remainder["size"]))
     if unsortbin and len(unsortbin) > 0 :
         print("\033[35m %20s:\033[37m " % "unsortbin",end="")
         for chunk in unsortbin :
