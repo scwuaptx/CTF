@@ -72,3 +72,18 @@ end
 define heapinfo
 	python putheapinfo()
 end
+define tracemode
+	python tracemode("$arg0")
+end
+
+define reg
+	python get_reg("$arg0")
+end
+
+define tracemalloc
+	python trace_malloc()
+end
+
+define inused
+	python putinused()
+end
