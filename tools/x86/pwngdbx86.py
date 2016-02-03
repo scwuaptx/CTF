@@ -14,14 +14,18 @@ free_off_32 = 0
 last_remainder = {}
 fastbinsize = 10
 fastbin = []
+freerecord = {}
 freememoryarea = {}
 allocmemoryarea = {}
 unsortbin = []
 smallbin = {}  #{size:bin}
 tracemode = False
+mallocbp = None
+freebp = None
 
 class Malloc_bp_ret(gdb.FinishBreakpoint):
     global allocmemoryarea
+    global freerecord
     def __init__(self):
         gdb.FinishBreakpoint.__init__(self,gdb.newest_frame(),internal=True)
         self.silent = True
@@ -39,6 +43,9 @@ class Malloc_bp_ret(gdb.FinishBreakpoint):
         cmd = word + hex(chunk["addr"] + ptrsize)
         chunk["size"] = int(gdb.execute(cmd,to_string=True).split(":")[1].strip(),16) & 0xfffffffffffffff8
         allocmemoryarea[hex(chunk["addr"])] = copy.deepcopy((chunk["addr"],chunk["addr"]+chunk["size"],chunk))
+        if hex(chunk["addr"]) in freerecord :
+            del freerecord[hex(chunk["addr"])]
+
 
 
 class Malloc_Bp_handler(gdb.Breakpoint):
@@ -49,15 +56,26 @@ class Malloc_Bp_handler(gdb.Breakpoint):
 class Free_Bp_handler(gdb.Breakpoint):
     def stop(self):
         global allocmemoryarea
+        global freerecord
         arch = getarch()
         ptrsize = 4
         if arch == "x86-64":
             ptrsize = 8
             reg = "$rdi"
+            word = "x/gx "
             result = int(gdb.execute("info register " + reg,to_string=True).split()[1].strip(),16)
         else :
             ptrsize = 4
+            word = "x/wx "
             result = int(gdb.execute("x/wx $esp+4" + reg,to_string=True).split()[1].strip(),16)
+        chunk = {}
+        chunk["addr"] = result - ptrsize*2
+        cmd = word + hex(chunk["addr"] + ptrsize)
+        chunk["size"] = int(gdb.execute(cmd,to_string=True).split(":")[1].strip(),16) & 0xfffffffffffffff8
+        overlap,status = check_overlap(chunk["addr"],chunk["size"],freerecord)
+        if overlap and status == "freed":
+            print("\033[31mdouble free detected !! (0x%x)\033[37m" % overlap["addr"])
+        freerecord[hex(chunk["addr"])] = copy.deepcopy((chunk["addr"],chunk["addr"]+chunk["size"],chunk))
         if hex(result-ptrsize*2) in allocmemoryarea :
             del allocmemoryarea[hex(result-ptrsize*2)]
         return False
@@ -319,18 +337,21 @@ def set_main_arena():
     else :
         print("You need to set main arena address")
 
-def check_overlap(addr,size):
-    for key,(start,end,chunk) in freememoryarea.items() :
+def check_overlap(addr,size,data = None):
+    if data :
+        for key,(start,end,chunk) in data.items() :
+            if (addr >= start and addr < end) or ((addr+size) > start and (addr+size) < end ) :
+                return chunk,"freed"
+    else :
+        for key,(start,end,chunk) in freememoryarea.items() :
     #    print("addr 0x%x,start 0x%x,end 0x%x,size 0x%x" %(addr,start,end,size) )
-        if (addr >= start and addr < end) or ((addr+size) > start and (addr+size) < end ) :
-            return chunk,"freed"
-    for key,(start,end,chunk) in allocmemoryarea.items() :
+            if (addr >= start and addr < end) or ((addr+size) > start and (addr+size) < end ) :
+                return chunk,"freed"
+        for key,(start,end,chunk) in allocmemoryarea.items() :
     #    print("addr 0x%x,start 0x%x,end 0x%x,size 0x%x" %(addr,start,end,size) )
-        if (addr >= start and addr < end) or ((addr+size) > start and (addr+size) < end ) :
-            return chunk,"inused"
-    
-    
-    return None
+            if (addr >= start and addr < end) or ((addr+size) > start and (addr+size) < end ) :
+                return chunk,"inused" 
+    return None,None
 
 def get_top_lastremainder():
     global main_arena
@@ -388,10 +409,10 @@ def get_fast_bin():
     for i in range(fastbinsize-3):
         fastbin.append([])
         chunk = {}
-        is_overlap = False
+        is_overlap = (None,None)
         cmd = "x/" + word  + hex(main_arena + i*ptrsize + 8)
         chunk["addr"] = int(gdb.execute(cmd,to_string=True).split(":")[1].strip(),16)
-        while chunk["addr"] and not is_overlap:
+        while chunk["addr"] and not is_overlap[0]:
             cmd = "x/" + word + hex(chunk["addr"]+ptrsize*1)
             try :
                 chunk["size"] = int(gdb.execute(cmd,to_string=True).split(":")[1].strip(),16) & 0xfffffffffffffff8
@@ -407,7 +428,7 @@ def get_fast_bin():
             chunk["addr"] = int(gdb.execute(cmd,to_string=True).split(":")[1].strip(),16)
         if not is_overlap:
             chunk["size"] = 0
-            chunk["overlap"] = False
+            chunk["overlap"] = None
             fastbin[i].append(copy.deepcopy(chunk))
 
 
@@ -537,6 +558,8 @@ def get_reg(reg):
 
 
 def trace_malloc():
+    global mallocbp
+    global freebp
     libc = libcbase()
     arch = getarch()
     if arch == "x86-64":
@@ -546,16 +569,26 @@ def trace_malloc():
         malloc_addr = libc + malloc_off_32
         free_addr = libc + free_off_32
 
-    Malloc_Bp_handler("*" + hex(malloc_addr))
-    Free_Bp_handler("*" + hex(free_addr))
- 
+    mallocbp = Malloc_Bp_handler("*" + hex(malloc_addr))
+    freebp = Free_Bp_handler("*" + hex(free_addr))
 
+def dis_trace_malloc():
+    global mallocbp
+    global freebp
+    if mallocbp and freebp :   
+        mallocbp.delete()
+        freebp.delete()
+        mallocbp = None
+        freebp = None
+ 
 def set_trace_mode(option="on"):
     global tracemode
     if option == "on":
         tracemode = True
+        trace_malloc()
     else :
         tracemode = False
+        dis_trace_malloc()
 
 def putfastbin():
     ptrsize = 4
@@ -571,7 +604,7 @@ def putfastbin():
                 print("\033[31m0x%x (%s)\033[37m" % (chunk["addr"],chunk["memerror"]),end = "")
             elif chunk["size"] != cursize and chunk["addr"] != 0 :
                 print("\033[36m0x%x (size error (0x%x))\033[37m" % (chunk["addr"],chunk["size"]),end = "")
-            elif chunk["overlap"] :
+            elif chunk["overlap"] and chunk["overlap"][0]:
                 print("\033[31m0x%x (overlap chunk with \033[36m0x%x(%s)\033[31m )\033[37m" % (chunk["addr"],chunk["overlap"][0]["addr"],chunk["overlap"][1]),end = "")
             elif chunk == bins[0]  :
                 print("\033[34m0x%x\033[37m" % chunk["addr"],end = "")
@@ -597,7 +630,7 @@ def putheapinfo():
         for chunk in unsortbin :
             if "memerror" in chunk :
                 print("\033[31m0x%x (%s)\033[37m" % (chunk["addr"],chunk["memerror"]),end = "")
-            elif chunk["overlap"] :
+            elif chunk["overlap"] and chunk["overlap"][0]:
                 print("\033[31m0x%x (overlap chunk with \033[36m0x%x(%s)\033[31m )\033[37m" % (chunk["addr"],chunk["overlap"][0]["addr"],chunk["overlap"][1]),end = "")
             elif chunk == unsortbin[-1]:
                 print("\033[34m0x%x\033[37m \33[33m(size : 0x%x)\033[37m" % (chunk["addr"],chunk["size"]),end = "")
@@ -616,7 +649,7 @@ def putheapinfo():
                 print("\033[31m0x%x (%s)\033[37m" % (chunk["addr"],chunk["memerror"]),end = "")
             elif chunk["size"] != int(size,16) :
                 print("\033[36m0x%x (size error (0x%x))\033[37m" % (chunk["addr"],chunk["size"]),end = "")
-            elif chunk["overlap"] :
+            elif chunk["overlap"] and chunk["overlap"][0]:
                 print("\033[31m0x%x (overlap chunk with \033[36m0x%x(%s)\033[31m )\033[37m" % (chunk["addr"],chunk["overlap"][0]["addr"],chunk["overlap"][1]),end = "")
             elif chunk == bins[-1]:
                 print("\033[34m0x%x\033[37m" % chunk["addr"],end = "")

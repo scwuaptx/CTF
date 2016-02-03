@@ -81,7 +81,7 @@ define reg
 end
 
 define tracemalloc
-	python trace_malloc()
+	python set_trace_mode("$arg0")
 end
 
 define inused
