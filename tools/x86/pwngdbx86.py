@@ -18,6 +18,7 @@ freememoryarea = {}
 allocmemoryarea = {}
 unsortbin = []
 smallbin = {}  #{size:bin}
+largebin = {}
 tracemode = False
 mallocbp = None
 freebp = None
@@ -576,6 +577,97 @@ def get_smailbin():
             smallbin[hex(size)] = copy.deepcopy(bins)
 
 
+def largbin_index(size):
+    arch = getarch()
+    if arch == "x86-64":
+        if (size >> 6) <= 48 :
+            idx = 48 + (size >> 6)
+        elif (size >> 9) <= 20 :
+            idx = 91 + (size >> 9)
+        elif (size >> 12) <= 10:
+            idx = 110 + (size >> 12)
+        elif (size >> 15) <= 4 :
+            idx = 119 + (size >> 15)
+        elif (size >> 18) <= 2:
+            idx = 124 + (size >> 18)
+        else :
+            idx = 126
+    else :
+        if (size >> 6) <= 38 :
+            idx = 56 + (size >> 6)
+        elif (size >> 9) <= 20 :
+            idx = 91 + (size >> 9)
+        elif (size >> 12) <= 10:
+            idx = 110 + (size >> 12)
+        elif (size >> 15) <= 4 :
+            idx = 119 + (size >> 15)
+        elif (size >> 18) <= 2:
+            idx = 124 + (size >> 18)
+        else :
+            idx = 126
+    return idx 
+
+def get_largebin():
+    global main_arena
+    global largebin
+    min_largebin = 512
+    smallbin = {}
+    ptrsize = 4
+    idxsize = 56
+    word = "wx "
+    arch = getarch()
+    if arch == "x86-64":
+        ptrsize = 8
+        idxsize = 48
+        word = "gx "
+        min_largebin *=2
+    for i in range(32):
+        size = min_largebin + i*ptrsize*0x10
+        chunkhead = {}
+        idx = largbin_index(size) 
+        cmd = "x/" + word + hex(main_arena + (fastbinsize+2)*ptrsize+8 + idx*ptrsize*2)  # calc the largbin index
+        chunkhead["addr"] = int(gdb.execute(cmd,to_string=True).split(":")[1].strip(),16)
+        bins = trace_normal_bin(chunkhead)
+        if bins and len(bins) > 0 :
+            largebin[(idx,hex(size),hex(size+ptrsize*0x10))] = copy.deepcopy(bins)
+    for i in range(16):
+        size = min_largebin + 32*ptrsize*0x10 + i*ptrsize*0x80
+        chunkhead = {}
+        idx = largbin_index(size) 
+        cmd = "x/" + word + hex(main_arena + (fastbinsize+2)*ptrsize+8 + idx*ptrsize*2)  # calc the largbin index
+        chunkhead["addr"] = int(gdb.execute(cmd,to_string=True).split(":")[1].strip(),16)
+        bins = trace_normal_bin(chunkhead)
+        if bins and len(bins) > 0 :
+            largebin[(idx,hex(size),hex(size+ptrsize*0x80))] = copy.deepcopy(bins)
+    for i in range(8):
+        size = min_largebin + 32*ptrsize*0x10 + 16*ptrsize*0x80 + i*ptrsize*0x400
+        chunkhead = {}
+        idx = largbin_index(size) 
+        cmd = "x/" + word + hex(main_arena + (fastbinsize+2)*ptrsize+8 + idx*ptrsize*2)  # calc the largbin index
+        chunkhead["addr"] = int(gdb.execute(cmd,to_string=True).split(":")[1].strip(),16)
+        bins = trace_normal_bin(chunkhead)
+        if bins and len(bins) > 0 :
+            largebin[(idx,hex(size),hex(size+ptrsize*0x400))] = copy.deepcopy(bins)
+    for i in range(4):
+        size = min_largebin + 32*ptrsize*0x10 + 16*ptrsize*0x80 + 8*ptrsize*0x400 + i*ptrsize*0x2000
+        chunkhead = {}
+        idx = largbin_index(size) 
+        cmd = "x/" + word + hex(main_arena + (fastbinsize+2)*ptrsize+8 + idx*ptrsize*2)  # calc the largbin index
+        chunkhead["addr"] = int(gdb.execute(cmd,to_string=True).split(":")[1].strip(),16)
+        bins = trace_normal_bin(chunkhead)
+        if bins and len(bins) > 0 :
+            largebin[(idx,hex(size),hex(size+ptrsize*0x2000))] = copy.deepcopy(bins)
+    for i in range(2):
+        size = min_largebin + 32*ptrsize*0x10 + 16*ptrsize*0x80 + 8*ptrsize*0x400 + 4*ptrsize*0x2000 + i*ptrsize*0x10000
+        chunkhead = {}
+        idx = largbin_index(size) 
+        cmd = "x/" + word + hex(main_arena + (fastbinsize+2)*ptrsize+8 + idx*ptrsize*2)  # calc the largbin index
+        chunkhead["addr"] = int(gdb.execute(cmd,to_string=True).split(":")[1].strip(),16)
+        bins = trace_normal_bin(chunkhead)
+        if bins and len(bins) > 0 :
+            largebin[(idx,hex(size),hex(size+ptrsize*0x10000))] = copy.deepcopy(bins)
+
+
 def get_heap_info():
     global main_arena
     global freememoryarea
@@ -585,6 +677,7 @@ def get_heap_info():
     if main_arena :
         get_unsortbin()
         get_smailbin()
+        get_largebin()
         get_fast_bin()
         get_top_lastremainder()
 
@@ -654,9 +747,11 @@ def putfastbin():
 
 def putheapinfo():
     ptrsize = 4
+    idxsize = 56
     arch = getarch()
     if arch == "x86-64":
         ptrsize = 8
+        idxsize = 48
     putfastbin()
     if "memerror" in top :
         print("\033[35m %20s:\033[31m 0x%x \033[33m(size : 0x%x)\033[31m (%s)\033[37m " % ("top",top["addr"],top["size"],top["memerror"]))
@@ -681,7 +776,7 @@ def putheapinfo():
         print("\033[35m %20s:\033[37m 0x%x" % ("unsortbin",0)) #no chunk in unsortbin
     for size,bins in smallbin.items() :
         idx = int((int(size,16)/(ptrsize*2)))-2 
-        print("\033[33m(0x%03x)  %s[%2d]:\033[37m " % (int(size,16),"smallbin",idx),end="")
+        print("\033[33m(0x%03x)        %s[%2d]:\033[37m " % (int(size,16),"smallbin",idx),end="")
         for chunk in bins :
             if "memerror" in chunk :
                 print("\033[31m0x%x (%s)\033[37m" % (chunk["addr"],chunk["memerror"]),end = "")
@@ -695,7 +790,22 @@ def putheapinfo():
                 print("0x%x " % chunk["addr"],end = "")
             if chunk != bins[-1]:
                 print(" <--> ",end = "")
-        print("")
+        print("") 
+    for (idx,size,maxsize),bins in largebin.items():
+        print("\033[33m(0x%03x-0x%03x)  %s[%2d]:\033[37m " % (int(size,16),int(maxsize,16),"largebin",idx),end="")
+        for chunk in bins :
+            if "memerror" in chunk :
+                print("\033[31m0x%x (%s)\033[37m" % (chunk["addr"],chunk["memerror"]),end = "")
+            elif chunk["overlap"] and chunk["overlap"][0]:
+                print("\033[31m0x%x (overlap chunk with \033[36m0x%x(%s)\033[31m )\033[37m" % (chunk["addr"],chunk["overlap"][0]["addr"],chunk["overlap"][1]),end = "")
+            elif chunk == bins[-1]:
+                print("\033[34m0x%x\033[37m \33[33m(size : 0x%x)\033[37m" % (chunk["addr"],chunk["size"]),end = "")
+            else :
+                print("0x%x \33[33m(size : 0x%x)\033[37m" % (chunk["addr"],chunk["size"]),end = "")
+            if chunk != bins[-1]:
+                print(" <--> ",end = "")
+        print("") 
+
 
 def putinused():
     print("\033[33m %s:\033[37m " % "inused ",end="")
