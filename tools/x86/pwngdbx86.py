@@ -7,20 +7,25 @@ main_arena_off = 0 #You need to modify it if libc is stripd
 main_arena_off_32 = 0x1b7840  #You need to modify it 
 #main_arena_off_32 = 0
 top = {}
-malloc_off = 0x844a0 # You need to modify it
-malloc_off_32 = 0x73260  # You need to modfiy it
-free_off = 0x84850 # You need to modify it
+_int_malloc_off = 0x818d0 # You need to modify it
+_int_malloc_off_32 = 0  # You need to modfiy it
+_int_free_off = 0x80690 # You need to modify it
+_int_free_off_32 = 0 # You need to modify it
+malloc_off = 0 # You need to modify it
+free_off = 0 # You need to modify it
+malloc_off_32 = 0x73260 # You need to modify it
 free_off_32 = 0x73880 # You need to modify it
 last_remainder = {}
 fastbinsize = 10
 fastbin = []
 freememoryarea = {}
 allocmemoryarea = {}
+freerecord = {}
 unsortbin = []
 smallbin = {}  #{size:bin}
 largebin = {}
 tracemode = False
-tracelargebin = False
+tracelargebin = True
 mallocbp = None
 freebp = None
 DEBUG = False  #debug msg (free and malloc)if you want
@@ -39,12 +44,16 @@ class Malloc_bp_ret(gdb.FinishBreakpoint):
         if arch == "x86-64" :
             ptrsize = 8
             word = "x/gx "
-            chunk["addr"] = int(self.return_value) - ptrsize*2
+            value = int(self.return_value)
+            chunk["addr"] = value - ptrsize*2
         else :
             ptrsize = 4
             word = "x/wx "
             cmd = "info register $eax"
-            chunk["addr"] = int(gdb.execute(cmd,to_string=True).split()[1].strip(),16) - ptrsize*2
+            value = int(gdb.execute(cmd,to_string=True).split()[1].strip(),16)
+            chunk["addr"] = value - ptrsize*2
+        if value == 0 :
+            return False
 
         cmd = word + hex(chunk["addr"] + ptrsize)
         chunk["size"] = int(gdb.execute(cmd,to_string=True).split(":")[1].strip(),16) & 0xfffffffffffffff8
@@ -61,10 +70,15 @@ class Malloc_bp_ret(gdb.FinishBreakpoint):
                 msg = "\033[33mmalloc(0x%x)\033[37m" % self.arg
                 print("%-25s = 0x%x" % (msg,chunk["addr"] + ptrsize*2))
         allocmemoryarea[hex(chunk["addr"])] = copy.deepcopy((chunk["addr"],chunk["addr"]+chunk["size"],chunk))
-#        if hex(chunk["addr"]) in freerecord :
-#            del freerecord[hex(chunk["addr"])]
-
-
+        if hex(chunk["addr"]) in freerecord :
+            freechunktuple = freerecord[hex(chunk["addr"])]
+            freechunk = freechunktuple[2]
+            splitchunk = {}
+            del freerecord[hex(chunk["addr"])]
+            if chunk["size"] != freechunk["size"] :
+                splitchunk["addr"] = chunk["addr"] + chunk["size"]
+                splitchunk["size"] = freechunk["size"] - chunk["size"]
+                freerecord[hex(splitchunk["addr"])] = copy.deepcopy((splitchunk["addr"],splitchunk["addr"]+splitchunk["size"],splitchunk))
 
 class Malloc_Bp_handler(gdb.Breakpoint):
     def stop(self):
@@ -72,50 +86,116 @@ class Malloc_Bp_handler(gdb.Breakpoint):
         ptrsize = 4
         if arch == "x86-64":
             ptrsize = 8
-            reg = "$rdi"
+            if _int_malloc_off != 0 :
+                reg = "$rsi"
+            else :
+                reg = "$rdi"
             word = "x/gx "
             arg = int(gdb.execute("info register " + reg,to_string=True).split()[1].strip(),16)
         else :
             ptrsize = 4
             word = "x/wx "
-            arg = int(gdb.execute("x/wx $esp+4" ,to_string=True).split(":")[1].strip(),16)
+            if _int_malloc_off_32 != 0 :
+                arg = int(gdb.execute("x/wx $esp+8" ,to_string=True).split(":")[1].strip(),16)
+            else :
+                arg = int(gdb.execute("x/wx $esp+4" ,to_string=True).split(":")[1].strip(),16)
         Malloc_bp_ret(arg)
         return False
 
 class Free_Bp_handler(gdb.Breakpoint):
     def stop(self):
         global allocmemoryarea
-#        global freerecord
-        get_heap_info()
+        global freerecord
+#        get_heap_info()
+        get_top_lastremainder()
         arch = getarch()
         ptrsize = 4
         if arch == "x86-64":
             ptrsize = 8
-            reg = "$rdi"
             word = "x/gx "
-            result = int(gdb.execute("info register " + reg,to_string=True).split()[1].strip(),16)
+            if _int_free_off != 0 :
+                reg = "$rsi"
+                result = int(gdb.execute("info register " + reg,to_string=True).split()[1].strip(),16) + 0x10
+            else :
+                reg = "$rdi"
+                result = int(gdb.execute("info register " + reg,to_string=True).split()[1].strip(),16)
         else :
             ptrsize = 4
             word = "x/wx "
-            result = int(gdb.execute("x/wx $esp+4" ,to_string=True).split(":")[1].strip(),16)
+            if _int_free_off_32 != 0:
+                result = int(gdb.execute("x/wx $esp+8" ,to_string=True).split(":")[1].strip(),16) + 0x8
+            else :
+                result = int(gdb.execute("x/wx $esp+4" ,to_string=True).split(":")[1].strip(),16)
         chunk = {}
-
+        prevfreed = False
         chunk["addr"] = result - ptrsize*2
         cmd = word + hex(chunk["addr"] + ptrsize)
-        chunk["size"] = int(gdb.execute(cmd,to_string=True).split(":")[1].strip(),16) & 0xfffffffffffffff8
-        overlap,status = check_overlap(chunk["addr"],chunk["size"],freememoryarea)
+        size = int(gdb.execute(cmd,to_string=True).split(":")[1].strip(),16)
+        chunk["size"] = size & 0xfffffffffffffff8
+        if (size & 1) == 0 :
+            prevfreed = True
+#        overlap,status = check_overlap(chunk["addr"],chunk["size"],freememoryarea)
+        overlap,status = check_overlap(chunk["addr"],chunk["size"],freerecord)
         if overlap and status == "error" :
             if DEBUG :
-                msg = "\033[32mfree(0x%x)\033[37m" % result
-                print("\033[31m%-25s  double free detected !! (0x%x(size:0x%x))\033[37m" % (msg,overlap["addr"],overlap["size"]))
+                msg = "\033[32mfree(0x%x)\033[37m (size = 0x%x)" % (result,chunk["size"])
+                print("%-25s \033[31m double free detected !! (0x%x(size:0x%x))\033[37m" % (msg,overlap["addr"],overlap["size"]),end="")
             else :
-                print("\033[31mdouble free detected !! (0x%x)\033[37m" % overlap["addr"])
-#            del freerecord[hex(overlap["addr"])]
+                print("\033[31mdouble free detected !! (0x%x)\033[37m" % overlap["addr"],end = "")
+            del freerecord[hex(overlap["addr"])]
         else :
             if DEBUG :
-                msg = "\033[32mfree(0x%x)\033[37m" % result
-                print("%-25s" % msg)
-#        freerecord[hex(chunk["addr"])] = copy.deepcopy((chunk["addr"],chunk["addr"]+chunk["size"],chunk))
+                msg = "\033[32mfree(0x%x)\033[37m (size = 0x%x)" % (result,chunk["size"])
+                print("%-25s" % msg,end="")
+
+        if chunk["size"] <= 0x80 :
+            freerecord[hex(chunk["addr"])] = copy.deepcopy((chunk["addr"],chunk["addr"]+chunk["size"],chunk))
+            print("")
+            if hex(chunk["addr"]) in allocmemoryarea :
+                del allocmemoryarea[hex(chunk["addr"])]
+            return False
+
+        prevchunk = {}
+        if prevfreed :
+            cmd = word + hex(chunk["addr"])
+            prevchunk["size"] = int(gdb.execute(cmd,to_string=True).split(":")[1].strip(),16) & 0xfffffffffffffff8
+            prevchunk["addr"] = chunk["addr"] - prevchunk["size"]
+            if hex(prevchunk["addr"]) not in freerecord :
+                print("\033[31m confuse in chunk 0x%x" % prevchunk["addr"],end = "")
+            else :
+                prevchunk["size"] += chunk["size"]
+                del freerecord[hex(prevchunk["addr"])]
+
+        nextchunk = {}
+        nextchunk["addr"] = chunk["addr"] + chunk["size"]
+        
+        if nextchunk["addr"] == top["addr"] :
+            if hex(chunk["addr"]) in allocmemoryarea :
+                del allocmemoryarea[hex(chunk["addr"])]
+            print("")
+            return False
+
+        cmd = word + hex(nextchunk["addr"] + ptrsize)
+        nextchunk["size"] = int(gdb.execute(cmd,to_string=True).split(":")[1].strip(),16) & 0xfffffffffffffff8
+        cmd = word + hex(nextchunk["addr"] + nextchunk["size"] + ptrsize)
+        nextinused = int(gdb.execute(cmd,to_string=True).split(":")[1].strip(),16) & 1
+        
+        if nextinused == 0 and prevfreed: #next chunk is frred                       
+            if hex(nextchunk["addr"]) not in freerecord :
+                print("\033[31m confuse in chunk 0x%x" % nextchunk["addr"],end="")
+            else :
+                prevchunk["size"] += nextchunk["size"]
+                del freerecord[hex(nextchunk["addr"])]
+                chunk = prevchunk
+        if nextinused == 0 and not prevfreed:
+            if hex(nextchunk["addr"]) not in freerecord :
+                print("\033[31m confuse in chunk 0x%x" % nextchunk["addr"],end = "")
+            else :
+                chunk["size"] += nextchunk["size"]
+                del freerecord[hex(nextchunk["addr"])]
+
+        freerecord[hex(chunk["addr"])] = copy.deepcopy((chunk["addr"],chunk["addr"]+chunk["size"],chunk))
+        print("")
         if hex(chunk["addr"]) in allocmemoryarea :
             del allocmemoryarea[hex(chunk["addr"])]
         return False
@@ -695,15 +775,24 @@ def trace_malloc():
     global freebp
     libc = libcbase()
     arch = getarch()
-    if arch == "x86-64":
-        malloc_addr = libc + malloc_off
-        free_addr = libc + free_off
+    if arch == "x86-64" :
+        if _int_malloc_off != 0 :
+            malloc_addr = libc + _int_malloc_off
+            free_addr = libc + _int_free_off
+        else :
+            malloc_addr = libc + malloc_off
+            free_addr = libc + free_off
     else :
-        malloc_addr = libc + malloc_off_32
-        free_addr = libc + free_off_32
+        if _int_malloc_off_32 != 0 :
+            malloc_addr = libc + _int_malloc_off_32
+            free_addr = libc + _int_free_off_32
+        else :
+            malloc_addr = libc + malloc_off_32
+            free_addr = libc + free_off_32
 
     mallocbp = Malloc_Bp_handler("*" + hex(malloc_addr))
     freebp = Free_Bp_handler("*" + hex(free_addr))
+    get_heap_info()
 
 def dis_trace_malloc():
     global mallocbp
