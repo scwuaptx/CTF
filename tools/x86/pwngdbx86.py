@@ -60,15 +60,17 @@ class Malloc_bp_ret(gdb.FinishBreakpoint):
         overlap,status = check_overlap(chunk["addr"],chunk["size"],allocmemoryarea)
         if overlap and status == "error" :
             if DEBUG :
+                print("\033[34m>--------------------------------------------------------------------------------------<\033[37m")
                 msg = "\033[33mmalloc(0x%x)\033[37m" % self.arg
-                print("%-25s = 0x%x \033[31moverlap detected !! (0x%x)\033[37m" % (msg,chunk["addr"]+ptrsize*2,overlap["addr"]))
+                print("%-40s = 0x%x \033[31m overlap detected !! (0x%x)\033[37m" % (msg,chunk["addr"]+ptrsize*2,overlap["addr"]))
+                print("\033[34m>--------------------------------------------------------------------------------------<\033[37m")
             else :
                 print("\033[31moverlap detected !! (0x%x)\033[37m" % overlap["addr"])
             del allocmemoryarea[hex(overlap["addr"])]
         else :
             if DEBUG:
                 msg = "\033[33mmalloc(0x%x)\033[37m" % self.arg
-                print("%-25s = 0x%x" % (msg,chunk["addr"] + ptrsize*2))
+                print("%-40s = 0x%x" % (msg,chunk["addr"] + ptrsize*2))
         allocmemoryarea[hex(chunk["addr"])] = copy.deepcopy((chunk["addr"],chunk["addr"]+chunk["size"],chunk))
         if hex(chunk["addr"]) in freerecord :
             freechunktuple = freerecord[hex(chunk["addr"])]
@@ -139,18 +141,21 @@ class Free_Bp_handler(gdb.Breakpoint):
         if overlap and status == "error" :
             if DEBUG :
                 msg = "\033[32mfree(0x%x)\033[37m (size = 0x%x)" % (result,chunk["size"])
-                print("%-25s \033[31m double free detected !! (0x%x(size:0x%x))\033[37m" % (msg,overlap["addr"],overlap["size"]),end="")
+                print("\033[34m>--------------------------------------------------------------------------------------<\033[37m")
+                print("%-25s \033[31m double free detected !! (0x%x(size:0x%x))\033[37m" % (msg,overlap["addr"],overlap["size"]))
+                print("\033[34m>--------------------------------------------------------------------------------------<\033[37m",end="")
             else :
-                print("\033[31mdouble free detected !! (0x%x)\033[37m" % overlap["addr"],end = "")
+                print("\033[31mdouble free detected !! (0x%x)\033[37m" % overlap["addr"])
             del freerecord[hex(overlap["addr"])]
         else :
             if DEBUG :
-                msg = "\033[32mfree(0x%x)\033[37m (size = 0x%x)" % (result,chunk["size"])
-                print("%-25s" % msg,end="")
+                msg = "\033[32mfree(0x%x)\033[37m" % result
+                print("%-40s (size = 0x%x)" % (msg,chunk["size"]),end="")
 
         if chunk["size"] <= 0x80 :
             freerecord[hex(chunk["addr"])] = copy.deepcopy((chunk["addr"],chunk["addr"]+chunk["size"],chunk))
-            print("")
+            if DEBUG :
+                print("")
             if hex(chunk["addr"]) in allocmemoryarea :
                 del allocmemoryarea[hex(chunk["addr"])]
             return False
@@ -161,7 +166,7 @@ class Free_Bp_handler(gdb.Breakpoint):
             prevchunk["size"] = int(gdb.execute(cmd,to_string=True).split(":")[1].strip(),16) & 0xfffffffffffffff8
             prevchunk["addr"] = chunk["addr"] - prevchunk["size"]
             if hex(prevchunk["addr"]) not in freerecord :
-                print("\033[31m confuse in chunk 0x%x" % prevchunk["addr"],end = "")
+                print("\033[31m confuse in prevchunk 0x%x" % prevchunk["addr"])
             else :
                 prevchunk["size"] += chunk["size"]
                 del freerecord[hex(prevchunk["addr"])]
@@ -172,7 +177,8 @@ class Free_Bp_handler(gdb.Breakpoint):
         if nextchunk["addr"] == top["addr"] :
             if hex(chunk["addr"]) in allocmemoryarea :
                 del allocmemoryarea[hex(chunk["addr"])]
-            print("")
+            if DEBUG :
+                print("")
             return False
 
         cmd = word + hex(nextchunk["addr"] + ptrsize)
@@ -180,22 +186,25 @@ class Free_Bp_handler(gdb.Breakpoint):
         cmd = word + hex(nextchunk["addr"] + nextchunk["size"] + ptrsize)
         nextinused = int(gdb.execute(cmd,to_string=True).split(":")[1].strip(),16) & 1
         
-        if nextinused == 0 and prevfreed: #next chunk is frred                       
+        if nextinused == 0 and prevfreed: #next chunk is freed                       
             if hex(nextchunk["addr"]) not in freerecord :
-                print("\033[31m confuse in chunk 0x%x" % nextchunk["addr"],end="")
+                print("\033[31m confuse in nextchunk 0x%x" % nextchunk["addr"])
             else :
                 prevchunk["size"] += nextchunk["size"]
                 del freerecord[hex(nextchunk["addr"])]
                 chunk = prevchunk
         if nextinused == 0 and not prevfreed:
             if hex(nextchunk["addr"]) not in freerecord :
-                print("\033[31m confuse in chunk 0x%x" % nextchunk["addr"],end = "")
+                print("\033[31m confuse in nextchunk 0x%x" % nextchunk["addr"])
             else :
                 chunk["size"] += nextchunk["size"]
                 del freerecord[hex(nextchunk["addr"])]
+        if prevfreed :
+            chunk = prevchunk
 
+        if DEBUG :
+            print("")
         freerecord[hex(chunk["addr"])] = copy.deepcopy((chunk["addr"],chunk["addr"]+chunk["size"],chunk))
-        print("")
         if hex(chunk["addr"]) in allocmemoryarea :
             del allocmemoryarea[hex(chunk["addr"])]
         return False
@@ -802,6 +811,7 @@ def dis_trace_malloc():
         freebp.delete()
         mallocbp = None
         freebp = None
+        allocmemoryarea = {}
  
 def set_trace_mode(option="on"):
     global tracemode
