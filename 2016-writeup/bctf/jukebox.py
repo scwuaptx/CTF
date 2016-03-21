@@ -8,6 +8,8 @@ port = 1990
 #host = "10.211.55.16"
 #port = 8888
 
+# BCTF{_sql_inj3ct1on_b1t3s_}
+
 sock = make_conn(host,port)
 
 
