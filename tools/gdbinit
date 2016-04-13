@@ -209,6 +209,20 @@ end
 define findstr
 	python findstr("$arg0")
 end
+
+#heap
+define heapinfo
+	python putheapinfo()
+end
+
+define fastbin
+	python putfastbin()
+end
+
+define inused
+	python putinused()
+end
+
 # this is ugly but there's no else if available :-(
 define color
  if $USECOLOR == 1
