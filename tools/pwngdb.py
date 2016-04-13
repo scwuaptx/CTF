@@ -653,3 +653,47 @@ def putinused():
     for addr,(start,end,chunk) in allocmemoryarea.items() :
         print("0x%x," % (chunk["addr"]),end="")
     print("")
+
+
+def checksec():
+    filename = gdb.objfiles()[0].filename
+    result = {}
+    result["RELRO"] = 0
+    result["CANARY"] = 0
+    result["NX"] = 1
+    result["PIE"] = 0
+    result["FORTIFY"] = 0
+    if filename is None :
+        print("Error")
+        return 0
+    data = subprocess.check_output("readelf -W -a " + filename,shell=True).decode('utf8')
+    
+    if re.search("GNU_RELRO",data):
+        result["RELRO"] |= 2
+    if re.search("BIND_NOW",data):
+        result["RELRO"] |= 1
+    if re.search("__stack_chk_fail",data):
+        result["CANARY"] = 1
+    if re.search(r"GNU_STACK.*RWE.*\n",data):
+        result["NX"] = 0
+    if re.search(r"DYN \(",data):
+        result["PIE"] = 4
+    if re.search(r"\(DEBUG\)",data) and result["PIE"] == 4 :
+        result["PIE"] = 1
+    if re.search("_chk@",data):
+        result["FORTIFY"] = 1
+
+    if result["RELRO"] == 1:
+        result["RELRO"] = 0
+
+    out = {
+        0 : "\033[31mdisabled\033[37m",
+        1 : "\033[32mENABLE\033[37m",
+        2 : "\033[33mPartial\033[37m",
+        3 : "\033[32mFULL\033[37m",
+        4 : "\033[33mDynamic Shared Object\033[37m"
+        }
+
+    for (k,v) in sorted(result.items()):
+        print("%s : %s" % (k.ljust(10), out[v]))
+    return

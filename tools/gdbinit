@@ -205,6 +205,10 @@ define length
 	python length("$arg0","$arg1")
 end
 
+define checksec
+	python checksec()
+end
+
 #find 
 define findstr
 	python findstr("$arg0")
