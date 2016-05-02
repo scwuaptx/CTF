@@ -187,3 +187,11 @@ def srop32(sigret,eip,ebp,esp,ebx = 0,ecx = 0,edx = 0,eax = 0xb,edi = 0,esi = 0)
     sigcontext += pack32(oldmask)
     sigcontext += pack32(cr2)
     return sigcontext
+
+def calc_force(targetaddr,topaddr,bits=64):
+    if bit == 32:
+        nb = targetaddr - 4 - topaddr - 0x8
+    else :
+        nb = targetaddr - 8 - topaddr - 0x10
+    return nb
+
