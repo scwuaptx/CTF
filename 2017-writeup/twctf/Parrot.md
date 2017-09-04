@@ -25,3 +25,4 @@
 	![](2.png) 
 - Overwrite `__free_hook`
 	- Control the flow 
+	- [exploit](parrot.py)
