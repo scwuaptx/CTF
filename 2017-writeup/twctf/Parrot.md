@@ -6,7 +6,8 @@
 	- It can leak some data on the heap
 
 - A null byte overwrite
-	- 
+	- If you give a large size,it would read faild.
+		- But it's not check and it would put a null byte to the address.
 
 ## Exploit
 - Leak libc
