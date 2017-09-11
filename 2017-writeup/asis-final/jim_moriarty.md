@@ -7,6 +7,8 @@
 	
 	
 ## Exploit
++ Allocate a large buffer so that it can be in front of libc.
+	+ You need to calculate the size and the offset of stdin first. 
 + Overwrite the last byte of `_IO_buf_base` with null byte in the stdin structure
 	+ It's very similar to [parrot](https://github.com/scwuaptx/CTF/blob/master/2017-writeup/twctf/Parrot.md)
 + Forge the FILE structure in `g_buf`
