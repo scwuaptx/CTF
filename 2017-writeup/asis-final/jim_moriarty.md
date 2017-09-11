@@ -39,3 +39,4 @@
 		+ `%13$s`: Just read until stdin buffer is empty 
 		+ `%9$s` : Read data to stack
  	+ It would trigger stack overflow and you can do ROP.
++ [exploit](jim_moriarty.py)
