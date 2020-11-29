@@ -82,7 +82,7 @@ if (secretarrayidx < SECRET_SIZE) {  //int64
 
 + Because it use private heap, we can easy use the oob write to write the metadata of the segment.
 
-+ Our target is `_HEAP_PAGE_RANGE_DESCRIPTOR`. We can overwrite the `_HEAP_PAGE_RANGE_DESCRIPTOR->UnitCount` to make a large subsegment and free it. It will release the next subsegment which is being used. And than create it again we will get overlap chunk.
++ Our target is `_HEAP_PAGE_RANGE_DESCRIPTOR`. We can overwrite the `_HEAP_PAGE_RANGE_DESCRIPTOR->UnitSize` to make a large subsegment and free it. It will release the next subsegment which is being used. And than create it again we will get overlap chunk.
 
     + First, we can allocate 5 subsegment such as the diagram. and fill the VS subsegment
 
