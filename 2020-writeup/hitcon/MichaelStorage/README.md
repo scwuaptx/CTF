@@ -15,8 +15,11 @@ HITCON CTF 2020 Archangel Michael's Storage
 
 ### Note 
 + It a segment heap challenge
-  + You can reference MarkYason's [talk]([MarkYason](https://www.blackhat.com/docs/us-16/materials/us-16-Yason-Windows-10-Segment-Heap-Internals.pdf)) to learn about the mechanism of segment heap
-  + I will also release more about segment heap slide recently
+  + You can reference MarkYason's [talk](https://www.blackhat.com/docs/us-16/materials/us-16-Yason-Windows-10-Segment-Heap-Internals.pdf) to learn about the mechanism of segment heap
+  + My slide for segment heap in windows kernel 
+    + https://speakerdeck.com/scwuaptx/windows-kernel-heap-segment-heap-in-windows-kernel-part-1
+    + It very similar to segment heap in userland.
+
 
 
 ### Progeam
@@ -78,38 +81,74 @@ if (secretarrayidx < SECRET_SIZE) {  //int64
 
 
 ## Exploit
+
+### Plan
++ It looks very very easy !
+
+  + We can use oob to overwrite string pointer with anything !
+  + But ... 
+    + We don’t know any address…
+
+So we need do leak first !
+Create overlap chunk is easy way !
+
 ### Create overlap chunk
 
 + Because it use private heap, we can easy use the oob write to write the metadata of the segment.
+  + There are many idea that you easily think of:
+    + Corrupt LFH bitmap 
+    + Abusing VS chunk header
 
-+ Our target is `_HEAP_PAGE_RANGE_DESCRIPTOR`. We can overwrite the `_HEAP_PAGE_RANGE_DESCRIPTOR->UnitSize` to make a large subsegment and free it. It will release the next subsegment which is being used. And than create it again we will get overlap chunk.
++ But there are many problems you will encounter
+  + Corrupt LFH bitmap
+    + Randomness of LFH chunk
+  + Abusing VS chunk header 
+    + Chunk header encoding
 
-    + First, we can allocate 5 subsegment such as the diagram. and fill the VS subsegment
+Our target is `_HEAP_PAGE_RANGE_DESCRIPTOR`. We can overwrite the `_HEAP_PAGE_RANGE_DESCRIPTOR->UnitCount` to make a large subsegment and free it. 
 
-    ![](pic/1.png)
+It will release the next subsegment which is being used. And then create it again we will get overlap chunk.
 
-    + Next, use oob to modify the page range descriptor of third subsegment  
++ First, we can allocate 5 subsegment and fill the VS subsegment
+ 
+![](pic/1.png)
 
-    ![](pic/2.png)
++ Fill the VS subsegment
 
+![](pic/2.png)
 
-    + Free it. It will release third and fourth subsegmnt.
++ Next, use oob to modify the page range descriptor of 
+third subsegment
 
-    ![](pic/3.png)
+![](pic/3.png)
 
-    + Allocate two subsegment int subsegment and new VS subsegment
-      + because we fill the first VS subsegment, it will allocate new VS subsegment when we use VS Allocation.
++ Free it. It will release third and fourth subsegment.
 
-    ![](pic/4.png)
+![](pic/4.png)
 
-    + Now we can allocate new string stroage structure in the new VS subsegment. We have a overlap chunk and we can use the first string storage to leak someting. We also can use secret storage to avoid null byte terminate. 
++ Allocate int subsegment 
 
-    ![](pic/5.png)
+![](pic/5.png)
+
++ Allocate new VS subsegment
+![](pic/6.png)
+
++ because we fill the first VS subsegment, it will allocate new VS subsegment when we use VS Allocation.
+
+![](pic/7.png)
+
++ Now we can allocate new string storage structure in the new VS subsegment.
+We have a overlap chunk and we can use the first string storage to leak something. We also can use secret storage to avoid null byte terminate.
+We can use it to leak heap address
+
+![](pic/8.png)
 
 ### Arbitrary memory reading and writing 
+
 + After we create overlap chunk, we can do arbitrary memory reading and writing by using string storage and secret storage.
-+ After we can do arbitrary memory reading, we can use it to leak `_HEAP_VS_SUBSEGMENT->Flink` to get `_SEGMENT_HEAP`
-+ We can leak ntdll from `_SEGMENT_HEAP->LfhContext->AffinityModArray`
+
++ After we can do arbitrary memory reading, we can use it to leak `_HEAP_VS_SUBSEGMENT->Flink` to get `_SEGMENT_HEAP`
+We can leak ntdll from `_SEGMENT_HEAP->LfhContext->AffinityModArray`
 
 
 ### Control RIP
