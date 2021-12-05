@@ -5,8 +5,9 @@ import binascii
 import sys
 from multiprocessing.pool import ThreadPool
 
+
+# Idea from CVE-2021-31439
 # https://www.zerodayinitiative.com/advisories/ZDI-21-492/
-# CVE-2021-31439
 
 context.arch = "amd64"    
 
