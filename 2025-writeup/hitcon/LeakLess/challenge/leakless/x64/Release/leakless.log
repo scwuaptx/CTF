@@ -1,0 +1,10 @@
+﻿  Building 'leakless' with toolset 'WindowsKernelModeDriver10.0' and the 'Desktop' target platform.
+  Source.c
+  leakless.vcxproj -> C:\Users\angelboy\source\repos\leakless\x64\Release\leakless.sys
+  Done Adding Additional Store
+  Successfully signed: C:\Users\angelboy\source\repos\leakless\x64\Release\leakless.sys
+  
+  Inf2Cat task was skipped as there were no inf files to process
+  
+  DrvCat task was skipped as there was no catalog file to process
+  
